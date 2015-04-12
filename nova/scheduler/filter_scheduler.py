@@ -20,6 +20,9 @@ Weighing Functions.
 """
 
 import random
+# CERN
+import time
+# CERN
 
 from oslo.config import cfg
 
@@ -237,6 +240,9 @@ class FilterScheduler(driver.Scheduler):
         """Returns a list of hosts that meet the required specs,
         ordered by their fitness.
         """
+# CERN
+        t_start = time.time()
+# CERN
         elevated = context.elevated()
         instance_properties = request_spec['instance_properties']
         instance_type = request_spec.get("instance_type", None)
@@ -310,6 +316,11 @@ class FilterScheduler(driver.Scheduler):
                 del instance_properties['pci_requests']
             if update_group_hosts is True:
                 filter_properties['group_hosts'].add(chosen_host.obj.host)
+# CERN
+        t_end = time.time()
+        LOG.info(_("instance: %s - schedule time: %s") % (instance_uuids[0],
+            round(t_end - t_start, 4)))
+# CERN
         return selected_hosts
 
     def _get_all_host_states(self, context):
