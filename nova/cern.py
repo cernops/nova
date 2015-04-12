@@ -26,7 +26,7 @@ from suds.client import Client
 
 import logging as pylog
 from nova import exception
-from nova.openstack.common.gettextutils import _
+from nova.i18n import _
 from nova.openstack.common import log as logging
 from oslo.config import cfg
 
