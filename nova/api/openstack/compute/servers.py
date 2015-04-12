@@ -1310,6 +1310,9 @@ class Controller(wsgi.Controller):
     @wsgi.response(204)
     def delete(self, req, id):
         """Destroys a server."""
+# CERN
+        LOG.info("Request to delete instance: %s" % id)
+# CERN
         try:
             self._delete(req.environ['nova.context'], req, id)
         except exception.NotFound:
