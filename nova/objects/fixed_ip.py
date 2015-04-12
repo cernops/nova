@@ -47,6 +47,9 @@ class FixedIP(obj_base.NovaPersistentObject, obj_base.NovaObject):
         'network': fields.ObjectField('Network', nullable=True),
         'virtual_interface': fields.ObjectField('VirtualInterface',
                                                 nullable=True),
+        'mac': fields.StringField(),
+        'netcluster': fields.StringField(),
+        'address_v6': fields.StringField(),
         }
 
     def obj_make_compatible(self, primitive, target_version):
