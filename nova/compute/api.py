@@ -71,6 +71,9 @@ from nova import servicegroup
 from nova import utils
 from nova.virt import hardware
 from nova import volume
+# CERN
+from nova import cern
+# CERN
 
 LOG = logging.getLogger(__name__)
 
@@ -1291,7 +1294,9 @@ class API(base.Base):
             instance.hostname = utils.sanitize_hostname(hostname)
 
     def _default_display_name(self, instance_uuid):
-        return "Server %s" % instance_uuid
+# CERN
+        return "server-%s" % instance_uuid
+# CERN
 
     def _populate_instance_for_create(self, context, instance, image,
                                       index, security_groups, instance_type):
