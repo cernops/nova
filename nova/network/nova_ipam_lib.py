@@ -95,7 +95,7 @@ class NeutronNovaIPAMLib(object):
         network = objects.Network.get_by_uuid(admin_context, net_id)
         vif_rec = objects.VirtualInterface.get_by_uuid(context, vif_id)
 # CERN
-        fixed_ips = objects.FixedIP.FixedIPList.get_by_virtual_interface_id(
+        fixed_ips = objects.FixedIPList.get_by_virtual_interface_id(
             context, vif_rec.id)
         return [str(fixed_ip.address_v6) for fixed_ip in fixed_ips]
 # CERN
