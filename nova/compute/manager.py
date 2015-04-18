@@ -1455,10 +1455,7 @@ class ComputeManager(manager.Manager):
                 network_info = self._allocate_network(original_context,
                         instance, requested_networks_obj, macs,
                         security_groups, dhcp_options)
-# CERN
-                network_info.wait(do_raise=True)
-                self._cern_ready(context, instance)
-# CERN
+
                 instance.vm_state = vm_states.BUILDING
                 instance.task_state = task_states.BLOCK_DEVICE_MAPPING
                 instance.numa_topology = inst_claim.claimed_numa_topology
@@ -2245,7 +2242,10 @@ class ComputeManager(manager.Manager):
             msg = _('Failed to allocate the network(s), not rescheduling.')
             raise exception.BuildAbortException(instance_uuid=instance.uuid,
                     reason=msg)
-
+# CERN
+        network_info.wait(do_raise=True)
+        self._cern_ready(context, instance)
+# CERN
         try:
             # Verify that all the BDMs have a device_name set and assign a
             # default to the ones missing it with the help of the driver.
