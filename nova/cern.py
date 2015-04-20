@@ -128,7 +128,7 @@ class LanDB:
                         'UserPerson':user_person})
         except Exception as e:
             LOG.error(_("Cannot update landb: %s" % str(e)))
-            raise exception.CernLanDBUpdate()
+            raise exception.CernLanDBUpdate(str(e))
 
 
     def vm_migrate(self, device, parent):

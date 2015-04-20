@@ -3128,7 +3128,11 @@ class API(base.Base):
     def delete_instance_metadata(self, context, instance, key):
         """Delete the given metadata item from an instance."""
 #  CERN
+        _metadata = dict(instance.metadata)
+
         landb_update = False
+        landb_os = 'UNKNOWN'
+        landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None
         landb_mainuser = None
@@ -3140,6 +3144,32 @@ class API(base.Base):
         if key == 'landb-ipv6ready':
             client = cern.LanDB()
             client.ipv6ready_update(instance['hostname'], False)
+
+        if key == 'landb-os':
+            landb_update = True
+            image_ref = instance['image_ref']
+            image_metadata = compute_utils.get_image_metadata(
+                context, self.image_api, image_ref, instance)
+
+            if 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+                landb_os = image_metadata['properties']['os']
+
+            if 'landb-osversion' in _metadata.keys():
+                landb_osversion = _metadata['landb-osversion']
+
+        if key == 'landb-osversion':
+            landb_update = True
+            image_ref = instance['image_ref']
+            image_metadata = compute_utils.get_image_metadata(
+                context, self.image_api, image_ref, instance)
+
+            if 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+                landb_osversion = image_metadata['properties']['os_version']
+
+            if 'landb-os' in _metadata.keys():
+                landb_os = _metadata['landb-os']
 
         if key == 'landb-mainuser':
             landb_update = True
@@ -3171,8 +3201,13 @@ class API(base.Base):
 
         if landb_update == True:
             client = cern.LanDB()
-            client.vm_update(instance['hostname'], description=landb_description,
-                responsible_person=landb_responsible, user_person=landb_mainuser)
+            landb_operating_system = {'Name': landb_os,
+                                     'Version': landb_osversion}
+            client.vm_update(instance['hostname'],
+                             description=landb_description,
+                             operating_system=landb_operating_system,
+                             responsible_person=landb_responsible,
+                             user_person=landb_mainuser)
 # CERN
         instance.delete_metadata_key(key)
         self.compute_rpcapi.change_instance_metadata(context,
@@ -3202,6 +3237,8 @@ class API(base.Base):
         self._check_metadata_properties_quota(context, _metadata)
 # CERN
         landb_update = False
+        landb_os = 'UNKNOWN'
+        landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None
         landb_mainuser = None
@@ -3217,6 +3254,18 @@ class API(base.Base):
                 client.ipv6ready_update(instance['hostname'], True)
             else:
                 client.ipv6ready_update(instance['hostname'], False)
+
+        if 'landb-os' in metadata.keys():
+            landb_update = True
+            landb_os = metadata['landb-os']
+        elif 'landb-os' in _metadata.keys():
+            landb_os = _metadata['landb-os']
+
+        if 'landb-osversion' in metadata.keys():
+            landb_update = True
+            landb_osversion = metadata['landb-osversion']
+        elif 'landb-osversion' in _metadata.keys():
+            landb_osversion = _metadata['landb-osversion']
 
         if 'landb-mainuser' in metadata.keys():
             landb_update = True
@@ -3252,11 +3301,15 @@ class API(base.Base):
             landb_update = True
             landb_description = metadata['landb-description']
 
-        # get previous vm information
         if landb_update == True:
             client = cern.LanDB()
-            client.vm_update(instance['hostname'], description=landb_description,
-                responsible_person=landb_responsible, user_person=landb_mainuser)
+            landb_operating_system = {'Name': landb_os,
+                                      'Version': landb_osversion}
+            client.vm_update(instance['hostname'],
+                             description=landb_description,
+                             operating_system=landb_operating_system,
+                             responsible_person=landb_responsible,
+                             user_person=landb_mainuser)
 # CERN
         instance.metadata = _metadata
         instance.save()

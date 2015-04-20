@@ -2454,14 +2454,24 @@ class CernManager(NetworkManager):
         else:
             image_metadata = {}
 
-        landb_operating_system = {'Name':'LINUX', 'Version': 'UNKNOWN'}
+        os_name = 'UNKNOWN'
+        os_version = 'UNKNOWN'
+
         if 'properties' in image_metadata.keys()\
-                         and 'os' in image_metadata['properties'].keys():
-            if (image_metadata['properties']['os']).lower() == 'windows':
-                landb_operating_system = {'Name':'WINDOWS', 'Version': 'UNKNOWN'}
-                if 'os_version' in image_metadata['properties'].keys() \
-        and 'server' in (image_metadata['properties']['os_version']).lower():
-                    landb_operating_system = {'Name':'WINDOWS', 'Version': 'SERVER'}
+                and 'os' in image_metadata['properties'].keys():
+            os_name = image_metadata['properties']['os']
+
+        if 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+            os_version = image_metadata['properties']['os_version']
+
+        if 'landb-os' in metadata.keys():
+            os_name = metadata['landb-os']
+
+        if 'landb-osversion' in metadata.keys():
+            os_version = metadata['landb-osversion']
+
+        landb_operating_system = {'Name': os_name, 'Version': os_version}
 
         user_name = self.db.instance_get_by_uuid(admin_context,
                                                  instance_uuid)["user_id"]
