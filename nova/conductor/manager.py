@@ -594,6 +594,19 @@ class ComputeTaskManager(base.Base):
     def build_instances(self, context, instances, image, filter_properties,
             admin_password, injected_files, requested_networks,
             security_groups, block_device_mapping=None, legacy_bdm=True):
+# CERN
+            obj_list = []
+            for instance in instances:
+                if isinstance(instance, dict):
+                    if 'availability_zone' not in instance:
+                        instance['availability_zone'] = None
+                    instance = objects.Instance._from_db_object(
+                        context, objects.Instance(), instance,
+                        expected_attrs=['metadata','system_metadata',] )
+                obj_list.append(instance)
+            instances = obj_list
+# CERN
+
         # TODO(ndipanov): Remove block_device_mapping and legacy_bdm in version
         #                 2.0 of the RPC API.
         request_spec = scheduler_utils.build_request_spec(context, image,
