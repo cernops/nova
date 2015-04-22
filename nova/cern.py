@@ -359,9 +359,9 @@ class ActiveDirectory():
 
     def register(self, hostname):
         try:
-            if self.client.service.CheckComputer(hostname) != None:
-                LOG.error(_("AD update failed - %s" % hostname))
-                raise exception.CernActiveDirectory()
+            result = self.client.service.CheckComputer(hostname)
+            if result != None:
+                LOG.warn(_("AD update failed - %s - %s" % (hostname, str(result))))
         except Exception as e:
             raise exception.CernActiveDirectory()
 
@@ -369,7 +369,7 @@ class ActiveDirectory():
         try:
             result = self.client.service.DeleteComputer(hostname)
             if result != None:
-                LOG.warn(_("AD delete failed - %s - %s" % (hostname, result)))
+                LOG.warn(_("AD delete failed - %s - %s" % (hostname, str(result))))
         except Exception as e:
             LOG.warn(_("Cannot delete VM from AD. %s" % str(e)))
 
