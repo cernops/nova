@@ -3131,7 +3131,7 @@ class API(base.Base):
         _metadata = dict(instance.metadata)
 
         landb_update = False
-        landb_os = 'UNKNOWN'
+        landb_os = 'LINUX'
         landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None
@@ -3237,7 +3237,7 @@ class API(base.Base):
         self._check_metadata_properties_quota(context, _metadata)
 # CERN
         landb_update = False
-        landb_os = 'UNKNOWN'
+        landb_os = 'LINUX'
         landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None

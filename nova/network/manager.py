@@ -2454,7 +2454,7 @@ class CernManager(NetworkManager):
         else:
             image_metadata = {}
 
-        os_name = 'UNKNOWN'
+        os_name = 'LINUX'
         os_version = 'UNKNOWN'
 
         if 'properties' in image_metadata.keys()\
