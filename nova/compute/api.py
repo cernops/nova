@@ -2579,7 +2579,7 @@ class API(base.Base):
 # CERN
         ipservice = self.db.cern_netcluster_get(context, instance['host'])
         ignore_hosts = self.db.cern_ignore_hosts(context,
-                                                 ipservices['netcluster'])
+                                                 ipservice['netcluster'])
         filter_properties['ignore_hosts'].extend(ignore_hosts)
 # CERN
         if not CONF.allow_resize_to_same_host:
