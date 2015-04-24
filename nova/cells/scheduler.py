@@ -81,25 +81,25 @@ class CellsScheduler(base.Base):
 
     def _create_instances_here(self, ctxt, instance_uuids, instance_properties,
             instance_type, image, security_groups, block_device_mapping):
-        instance_values = copy.copy(instance_properties)
-        # The parent may pass these metadata values as lists, and the
-        # create call expects it to be a dict.
-        instance_values['metadata'] = utils.instance_meta(instance_values)
-        sys_metadata = utils.instance_sys_meta(instance_values)
-        # Make sure the flavor info is set.  It may not have been passed
-        # down.
-        sys_metadata = flavors.save_flavor_info(sys_metadata, instance_type)
-        instance_values['system_metadata'] = sys_metadata
-        # Pop out things that will get set properly when re-creating the
-        # instance record.
-        instance_values.pop('id')
-        instance_values.pop('name')
-        instance_values.pop('info_cache')
-        instance_values.pop('security_groups')
-
+# CERN
         instances = []
-        num_instances = len(instance_uuids)
         for i, instance_uuid in enumerate(instance_uuids):
+            instance_values = copy.copy(instance_properties[i])
+            # The parent may pass these metadata values as lists, and the
+            # create call expects it to be a dict.
+            instance_values['metadata'] = utils.instance_meta(instance_values)
+            sys_metadata = utils.instance_sys_meta(instance_values)
+            # Make sure the flavor info is set.  It may not have been passed
+            # down.
+            sys_metadata = flavors.save_flavor_info(sys_metadata, instance_type)
+            instance_values['system_metadata'] = sys_metadata
+            # Pop out things that will get set properly when re-creating the
+            # instance record.
+            instance_values.pop('id')
+            instance_values.pop('name')
+            instance_values.pop('info_cache')
+            instance_values.pop('security_groups')
+
             instance = objects.Instance()
             instance.update(instance_values)
             instance.uuid = instance_uuid
@@ -110,12 +110,13 @@ class CellsScheduler(base.Base):
                     instance,
                     security_groups,
                     block_device_mapping,
-                    num_instances, i)
+                    1, i)
 
             instances.append(instance)
             instance_p = obj_base.obj_to_primitive(instance)
             self.msg_runner.instance_update_at_top(ctxt, instance_p)
         return instances
+# CERN
 
     def _create_action_here(self, ctxt, instance_uuids):
         for instance_uuid in instance_uuids:
@@ -159,7 +160,9 @@ class CellsScheduler(base.Base):
             build_inst_kwargs):
         """Attempt to build instance(s) or send msg to child cell."""
         ctxt = message.ctxt
-        instance_properties = build_inst_kwargs['instances'][0]
+# CERN
+        instance_properties = build_inst_kwargs['instances']
+# CERN
         filter_properties = build_inst_kwargs['filter_properties']
         instance_type = filter_properties['instance_type']
         image = build_inst_kwargs['image']
