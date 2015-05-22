@@ -41,6 +41,7 @@ class BaseVolumeUtils(object):
 
     def __init__(self, host='.'):
         if sys.platform == 'win32':
+            self._conn_storage = wmi.WMI(moniker='//%s/root/microsoft/windows/storage' % host)
             self._conn_wmi = wmi.WMI(moniker='//%s/root/wmi' % host)
             self._conn_cimv2 = wmi.WMI(moniker='//%s/root/cimv2' % host)
         self._drive_number_regex = re.compile(r'DeviceID=\"[^,]*\\(\d+)\"')
@@ -115,6 +116,8 @@ class BaseVolumeUtils(object):
                     return initiator_session.SessionId
 
     def _get_devices_for_target(self, target_iqn):
+        self._conn_storage.query("SELECT * FROM MSFT_iSCSISessionToDisk")
+
         initiator_sessions = self._conn_wmi.MSiSCSIInitiator_SessionClass(
             TargetName=target_iqn)
         if not initiator_sessions:
