@@ -129,7 +129,7 @@ class BaseVolumeUtils(object):
         devices = self._get_devices_for_target(target_iqn)
 
         for device in devices:
-            if device.ScsiLun == target_lun:
+            if device.ScsiLun == int(target_lun):
                 return device.DeviceNumber
 
     def get_target_lun_count(self, target_iqn):
