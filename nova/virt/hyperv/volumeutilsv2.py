@@ -46,10 +46,7 @@ class VolumeUtilsV2(basevolumeutils.BaseVolumeUtils):
         if sys.platform == 'win32':
             self._conn_storage = wmi.WMI(moniker=storage_namespace)
 
-    def _login_target_portal(self, target_portal):
-        (target_address,
-         target_port) = utils.parse_server_string(target_portal)
-
+    def _login_target_portal(self, target_address, target_port):
         # Checking if the portal is already connected.
         portal = self._conn_storage.query("SELECT * FROM "
                                           "MSFT_iSCSITargetPortal "
@@ -64,11 +61,27 @@ class VolumeUtilsV2(basevolumeutils.BaseVolumeUtils):
             portal.New(TargetPortalAddress=target_address,
                        TargetPortalPortNumber=target_port)
 
+    def _get_iscsi_paths(self, target_iqn, target_portal, use_multipath):
+        LOG.debug("Getting paths...")
+        if not use_multipath:
+            return [target_portal]
+
+        portal_groups = self._conn_wmi.MSiSCSIInitiator_TargetClass(
+            TargetName=target_iqn)[0].PortalGroups
+        portals = [group.Properties_('Portals').Value for group in portal_groups]
+        paths = [portal[0].Properties_('Address').Value for portal in portals]
+        LOG.debug(paths)
+        return paths
+
     def login_storage_target(self, target_lun, target_iqn, target_portal,
-                             auth_username=None, auth_password=None):
+                             use_multipath=False, auth_username=None,
+                             auth_password=None):
         """Ensure that the target is logged in."""
 
-        self._login_target_portal(target_portal)
+        (target_address,
+         target_port) = utils.parse_server_string(target_portal)
+
+        self._login_target_portal(target_address, target_port)
 
         retry_count = CONF.hyperv.volume_attach_retry_count
 
@@ -89,23 +102,33 @@ class VolumeUtilsV2(basevolumeutils.BaseVolumeUtils):
                     # required
                     target[0].Update()
                 return
-            try:
-                target = self._conn_storage.MSFT_iSCSITarget
-                auth = {}
-                if auth_username and auth_password:
-                    auth['AuthenticationType'] = self._CHAP_AUTH_TYPE
-                    auth['ChapUsername'] = auth_username
-                    auth['ChapSecret'] = auth_password
-                target.Connect(NodeAddress=target_iqn,
-                               IsPersistent=True, **auth)
-                time.sleep(CONF.hyperv.volume_attach_retry_interval)
-            except wmi.x_wmi as exc:
+
+            target = self._conn_storage.MSFT_iSCSITarget
+            auth = {}
+            if auth_username and auth_password:
+                auth['AuthenticationType'] = self._CHAP_AUTH_TYPE
+                auth['ChapUsername'] = auth_username
+                auth['ChapSecret'] = auth_password
+            iscsi_paths = self._get_iscsi_paths(target_iqn, target_address, use_multipath)
+            paths_open = 0
+            for path in iscsi_paths:
+                try:
+                    target.Connect(NodeAddress=target_iqn, TargetPortalAddress=path, TargetPortalPortNumber=target_port,
+                                   IsPersistent=True, IsMultipathEnabled=use_multipath, **auth)
+                    paths_open += 1
+                except wmi.x_wmi as exc:
+                    LOG.debug("Connection to iSCSI path %(path) failed "
+                              "WMI exception: %(exc)s" %
+                              {'path': path,
+                              'exc': exc})
+
+            time.sleep(CONF.hyperv.volume_attach_retry_interval)
+            if paths_open == 0:
                 LOG.debug("Attempt %(attempt)d to connect to target  "
-                          "%(target_iqn)s failed. Retrying. "
-                          "WMI exception: %(exc)s " %
+                          "%(target_iqn)s failed. Retrying. " %
                           {'target_iqn': target_iqn,
-                           'exc': exc,
-                           'attempt': attempt})
+                          'attempt': attempt})
+
         raise vmutils.HyperVException(_('Failed to login target %s') %
                                       target_iqn)
 

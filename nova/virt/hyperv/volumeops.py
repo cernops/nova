@@ -48,6 +48,9 @@ hyper_volumeops_opts = [
                default=5,
                help='Interval between checks for a mounted iSCSI '
                     'disk, in seconds.'),
+    cfg.BoolOpt('iscsi_use_multipath',
+                default=False,
+                help='Use multipath connection of the iSCSI volume'),
 ]
 
 CONF = cfg.CONF
@@ -120,8 +123,9 @@ class VolumeOps(object):
                       {'target_portal': target_portal,
                        'target_iqn': target_iqn, 'target_lun': target_lun})
             self._volutils.login_storage_target(target_lun, target_iqn,
-                                                target_portal, auth_username,
-                                                auth_password)
+                                                target_portal,
+                                                CONF.hyperv.iscsi_use_multipath,
+                                                auth_username, auth_password)
             # Wait for the target to be mounted
             self._get_mounted_disk_from_lun(target_iqn, target_lun, True)
 
