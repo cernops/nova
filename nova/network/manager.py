@@ -2454,22 +2454,20 @@ class CernManager(NetworkManager):
         else:
             image_metadata = {}
 
-        os_name = 'LINUX'
+        os_name = 'UNKNOWN'
         os_version = 'UNKNOWN'
-
-        if 'properties' in image_metadata.keys()\
-                and 'os' in image_metadata['properties'].keys():
-            os_name = image_metadata['properties']['os']
-
-        if 'properties' in image_metadata.keys()\
-                and 'os_version' in image_metadata['properties'].keys():
-            os_version = image_metadata['properties']['os_version']
 
         if 'landb-os' in metadata.keys():
             os_name = metadata['landb-os']
+        elif 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+            os_name = image_metadata['properties']['os']
 
         if 'landb-osversion' in metadata.keys():
             os_version = metadata['landb-osversion']
+        elif 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+            os_version = image_metadata['properties']['os_version']
 
         landb_operating_system = {'Name': os_name, 'Version': os_version}
 

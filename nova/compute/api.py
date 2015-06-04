@@ -3131,7 +3131,7 @@ class API(base.Base):
         _metadata = dict(instance.metadata)
 
         landb_update = False
-        landb_os = 'LINUX'
+        landb_os = 'UNKNOWN'
         landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None
@@ -3237,13 +3237,16 @@ class API(base.Base):
         self._check_metadata_properties_quota(context, _metadata)
 # CERN
         landb_update = False
-        landb_os = 'LINUX'
+        landb_os = 'UNKNOWN'
         landb_osversion = 'UNKNOWN'
         landb_description = None
         landb_responsible = None
         landb_mainuser = None
 
         client = cern.LanDB()
+        image_ref = instance['image_ref']
+        image_metadata = compute_utils.get_image_metadata(
+            context, self.image_api, image_ref, instance)
 
         if 'landb-alias' in metadata.keys():
             new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
@@ -3258,14 +3261,16 @@ class API(base.Base):
         if 'landb-os' in metadata.keys():
             landb_update = True
             landb_os = metadata['landb-os']
-        elif 'landb-os' in _metadata.keys():
-            landb_os = _metadata['landb-os']
+        elif 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+            landb_os = image_metadata['properties']['os']
 
         if 'landb-osversion' in metadata.keys():
             landb_update = True
             landb_osversion = metadata['landb-osversion']
-        elif 'landb-osversion' in _metadata.keys():
-            landb_osversion = _metadata['landb-osversion']
+        elif 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+            os_version = image_metadata['properties']['os_version']
 
         if 'landb-mainuser' in metadata.keys():
             landb_update = True
