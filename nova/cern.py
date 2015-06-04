@@ -131,15 +131,6 @@ class LanDB:
             raise exception.CernLanDBUpdate(str(e))
 
 
-    def vm_migrate(self, device, parent):
-        """Migrate vm to parent"""
-        try:
-            self.client.service.vmMigrate(device, (parent.lower()).replace('.cern.ch', ''))
-            LOG.debug(_("Parent migration to |%s|" % (parent.lower()).replace('.cern.ch', '')))
-        except Exception as e:
-            LOG.error(_("Cannot migrate VM in landb - %s" % str(e)))
-
-
     def vm_delete(self, device, new_device=None):
         """Update vm as deleted in landb"""
         if new_device == None:
