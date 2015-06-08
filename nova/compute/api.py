@@ -3261,6 +3261,8 @@ class API(base.Base):
         if 'landb-os' in metadata.keys():
             landb_update = True
             landb_os = metadata['landb-os']
+        elif 'landb-os' in _metadata.keys():
+            landb_os = _metadata['landb-os']
         elif 'properties' in image_metadata.keys()\
                 and 'os' in image_metadata['properties'].keys():
             landb_os = image_metadata['properties']['os']
@@ -3268,6 +3270,8 @@ class API(base.Base):
         if 'landb-osversion' in metadata.keys():
             landb_update = True
             landb_osversion = metadata['landb-osversion']
+        elif 'landb-osversion' in _metadata.keys():
+            landb_osversion = _metadata['landb-osversion']
         elif 'properties' in image_metadata.keys()\
                 and 'os_version' in image_metadata['properties'].keys():
             os_version = image_metadata['properties']['os_version']
