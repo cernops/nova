@@ -60,6 +60,13 @@ from nova.objects import base as obj_base
 from nova.objects import quotas as quotas_obj
 from nova import servicegroup
 from nova import utils
+# CERN
+from nova import cern
+import nova.image.glance
+import time
+import string
+import random
+# CERN
 
 LOG = logging.getLogger(__name__)
 
@@ -2153,3 +2160,413 @@ class VlanManager(RPCAllocateFixedIP, floating_ips.FloatingIP, NetworkManager):
         """Number of reserved IPs at the top of the range."""
         parent_reserved = super(VlanManager, self)._top_reserved_ips
         return parent_reserved + CONF.cnt_vpn_clients
+
+# CERN
+class CernManager(NetworkManager):
+    """CERN Network Manager."""
+
+    timeout_fixed_ips = False
+
+    required_create_args = ['bridge']
+
+    def _setup_network_on_host(self, context, network):
+        """Setup Network on this host."""
+        # NOTE(tr3buchet): this does not need to happen on every ip
+        # allocation, this functionality makes more sense in create_network
+        # but we'd have to move the flat_injected flag to compute
+        network.injected = CONF.flat_injected
+        network.save()
+
+    def _teardown_network_on_host(self, context, network):
+        """Tear down network on this host."""
+        pass
+
+    # NOTE(justinsb): The floating ip functions are stub-implemented.
+    # We were throwing an exception, but this was messing up horizon.
+    # Timing makes it difficult to implement floating ips here, in Essex.
+
+    def get_floating_ip(self, context, id):
+        """Returns a floating IP as a dict."""
+        # NOTE(vish): This is no longer used but can't be removed until
+        #             we major version the network_rpcapi to 2.0.
+        return None
+
+    def get_floating_pools(self, context):
+        """Returns list of floating pools."""
+        # NOTE(maurosr) This method should be removed in future, replaced by
+        # get_floating_ip_pools. See bug #1091668
+        return {}
+
+    def get_floating_ip_pools(self, context):
+        """Returns list of floating ip pools."""
+        # NOTE(vish): This is no longer used but can't be removed until
+        #             we major version the network_rpcapi to 2.0.
+        return {}
+
+    def get_floating_ip_by_address(self, context, address):
+        """Returns a floating IP as a dict."""
+        # NOTE(vish): This is no longer used but can't be removed until
+        #             we major version the network_rpcapi to 2.0.
+        return None
+
+    def get_floating_ips_by_project(self, context):
+        """Returns the floating IPs allocated to a project."""
+        # NOTE(vish): This is no longer used but can't be removed until
+        #             we major version the network_rpcapi to 2.0.
+        return []
+
+    def get_floating_ips_by_fixed_address(self, context, fixed_address):
+        """Returns the floating IPs associated with a fixed_address."""
+        # NOTE(vish): This is no longer used but can't be removed until
+        #             we major version the network_rpcapi to 2.0.
+        return []
+
+    @network_api.wrap_check_policy
+    def allocate_floating_ip(self, context, project_id, pool):
+        """Gets a floating ip from the pool."""
+        return None
+
+    @network_api.wrap_check_policy
+    def deallocate_floating_ip(self, context, address,
+                               affect_auto_assigned):
+        """Returns a floating ip to the pool."""
+        return None
+
+    @network_api.wrap_check_policy
+    def associate_floating_ip(self, context, floating_address, fixed_address,
+                              affect_auto_assigned=False):
+        """Associates a floating ip with a fixed ip.
+
+        Makes sure everything makes sense then calls _associate_floating_ip,
+        rpc'ing to correct host if i'm not it.
+        """
+        return None
+
+    @network_api.wrap_check_policy
+    def disassociate_floating_ip(self, context, address,
+                                 affect_auto_assigned=False):
+        """Disassociates a floating ip from its fixed ip.
+
+        Makes sure everything makes sense then calls _disassociate_floating_ip,
+        rpc'ing to correct host if i'm not it.
+        """
+        return None
+
+    def migrate_instance_start(self, context, instance_uuid,
+                               floating_addresses,
+                               rxtx_factor=None, project_id=None,
+                               source=None, dest=None):
+        pass
+
+    def migrate_instance_finish(self, context, instance_uuid,
+                                floating_addresses, host=None,
+                                rxtx_factor=None, project_id=None,
+                                source=None, dest=None):
+        pass
+
+    def update_dns(self, context, network_ids):
+        """Called when fixed IP is allocated or deallocated."""
+        pass
+
+    def create_networks(self, context, label, cidr, multi_host, num_networks,
+                        network_size, cidr_v6, gateway, gateway_v6, bridge,
+                        bridge_interface, dns1=None, dns2=None, **kwargs):
+        """Create network."""
+
+        net = {}
+        net['bridge'] = bridge
+        net['bridge_interface'] = bridge_interface
+        net['multi_host'] = multi_host
+        net['dns1'] = dns1
+        net['dns2'] = dns2
+        net['label'] = label
+        net['cidr'] = cidr
+        net['gateway'] = gateway
+
+        network = self.db.network_create_safe(context, net)
+
+    def update_network(self, context, cluster_name):
+
+        client_landb = cern.LanDB()
+        vms = client_landb.vmClusterGetDevices(cluster_name)
+        services = client_landb.vmClusterGetInfo(cluster_name).Services
+
+        primary_service = ""
+        for srv in services:
+            try:
+                if primary_service == "":
+                    primary_service = (client_landb.getServiceInfo(srv)).\
+                                        Primary.__str__()
+                    continue
+                if primary_service != (client_landb.getServiceInfo(srv)).\
+                                        Primary.__str__():
+                    LOG.error(_("Network cluster has different primary "
+                                 "services"))
+                    raise exception.CernNetwork()
+            except Exception as e:
+                LOG.error(_("Cannot get network primary service for network "
+                            "cluster - %s - %s"), cluster_name, str(e))
+                raise exception.CernNetwork()
+
+        physical_devices = client_landb.getDevicesFromService(primary_service)
+
+        hosts = []
+        for host in physical_devices:
+            if self.db.cern_netcluster_get(context, host+'.CERN.CH') == None:
+                LOG.info(_("Adding host - %s" % str(host)))
+                hosts.append({'host':host+'.CERN.CH', 'netcluster':cluster_name})
+            else:
+                LOG.debug(_("Device already exists in DB - %s" % str(host)))
+
+        fixed_ips = []
+        for vm in vms:
+            try:
+                vm_info = client_landb.getDeviceInfo(vm)
+            except Exception as e:
+                LOG.error(_("Cannot get VM netwok info - %s" % str(e)))
+                raise exception.CernNetwork()
+
+            ip = vm_info.Interfaces[0].IPAddress.__str__()
+            ipv6 = vm_info.Interfaces[0].IPv6Address.__str__()
+            mac = (vm_info.NetworkInterfaceCards[0].HardwareAddress.__str__()).replace('-', ':')
+
+            if self.db.cern_fixed_ip_get_by_address(context, ip) == None:
+                LOG.info(_("Adding ip - %s" % str(ip)))
+
+                fixed_ips.append({'network_id': '1',
+                                  'address': ip,
+                                  'address_v6': ipv6,
+                                  'reserved': False,
+                                  'mac': mac,
+                                  'netcluster': cluster_name})
+
+            else:
+                LOG.debug(_("IP already exists in DB - %s" % str(ip)))
+
+        self.db.cern_fixed_host_bulk_create(context, hosts)
+        self.db.fixed_ip_bulk_create(context, fixed_ips)
+
+    def allocate_for_instance(self, context, **kwargs):
+
+        instance_uuid = kwargs['instance_id']
+        if not uuidutils.is_uuid_like(instance_uuid):
+            instance_uuid = kwargs.get('instance_uuid')
+        host = kwargs['host']
+        project_id = kwargs['project_id']
+        rxtx_factor = kwargs['rxtx_factor']
+        requested_networks = kwargs.get('requested_networks')
+        vpn = kwargs['vpn']
+        admin_context = context.elevated()
+
+        networks = self._get_networks_for_instance(admin_context,
+                                        instance_uuid, project_id,
+                                        requested_networks=requested_networks)
+        networks_list = [self._get_network_dict(network)
+                                 for network in networks]
+        LOG.debug(_('networks retrieved for instance: |%s|'),
+                  networks_list, context=context, instance_uuid=instance_uuid)
+
+        vm_hostname = (self.db.instance_get_by_uuid(context,
+                                                    instance_uuid))['hostname']
+
+        self._allocate_address(admin_context, instance_uuid, host, networks,
+                               vm_hostname.lower())
+
+        return self.get_instance_nw_info(context, instance_uuid, rxtx_factor,
+                                         host)
+
+    def deallocate_fixed_ip(self, context, address, host, teardown=True,
+                            instance=None):
+        """Deallocate ip and vif"""
+
+        self._deallocate_address(context, address, host, teardown)
+
+    def _allocate_address(self, admin_context, instance_uuid, host, networks,
+                          vm_name):
+        """Allocates instance address."""
+
+        nw_cluster = self.db.cern_netcluster_get(admin_context,
+                                                 host)['netcluster']
+        fixed_ips = self.db.cern_mac_ip_get(admin_context, nw_cluster, host)
+        for i in range(20):
+            fixed_ip = random.choice(fixed_ips)
+            vm_ip = fixed_ip['address']
+            vm_mac = fixed_ip['mac']
+            network = networks[0]
+
+            LOG.info(_("Selected IP |%s| and MAC |%s| for instance |%s| "
+                       "on host |%s|" % (vm_ip, vm_mac, instance_uuid, host)))
+
+            vif = {'address': vm_mac,
+                   'instance_uuid': instance_uuid,
+                   'network_id': network['id'],
+                   'uuid': str(str(uuid.uuid4()))}
+
+            try:
+                self.db.virtual_interface_create(admin_context, vif)
+            except Exception as e:
+                LOG.info(_("IP |%s| and MAC |%s| for instance |%s| was already "
+                "reserved. Selecting other." % (vm_ip, vm_mac, instance_uuid)))
+                time.sleep(0.2)
+                continue
+            break
+        else:
+            raise exception.VirtualInterfaceMacAddressException()
+
+        get_vif = self.db.virtual_interface_get_by_instance_and_network
+        vifx = get_vif(admin_context, instance_uuid, network['id'])
+        values = {'allocated': True,
+                  'virtual_interface_id': vifx['id'],
+                  'instance_uuid': instance_uuid,
+                  'host': host}
+        self.db.fixed_ip_update(admin_context, vm_ip, values)
+
+        client_landb = cern.LanDB()
+        client_xldap = cern.Xldap()
+
+        if client_landb.device_exists(vm_name):
+            LOG.error(_("Hostname already exists in landb: %s" % vm_name))
+            raise exception.CernHostnameWrong()
+
+        metadata = self.db.instance_metadata_get(admin_context, instance_uuid)
+        device_name = client_landb.device_hostname(vm_ip)
+
+        client_landb.device_migrate(device_name,
+                             (host.lower()).replace('.cern.ch', ''))
+
+        if ('cern-update-hostname' in metadata.keys()\
+                and metadata['cern-update-hostname'].lower() == 'false'):
+            landb_hostname = client_landb.device_hostname(vm_ip)
+            update_dict = {}
+            update_dict['display_name'] = landb_hostname.strip()
+            update_dict['hostname'] = landb_hostname.strip()
+            instance = instance_obj.Instance.get_by_uuid(admin_context,
+                                                     instance_uuid)
+            instance.update(update_dict)
+            instance.save()
+            vm_name = device_name
+
+        try:
+            image_id = (self.db.instance_get_by_uuid(admin_context,
+                                                instance_uuid))['image_ref']
+        except Exception as e:
+            LOG.info(_("Cannot get image id for instance %s - %s" %
+                (str(instance_uuid), str(e))))
+
+        if image_id:
+            image_service = nova.image.glance.get_default_image_service()
+            image_metadata = image_service.show(admin_context, image_id)
+        else:
+            image_metadata = {}
+
+        os_name = 'UNKNOWN'
+        os_version = 'UNKNOWN'
+
+        if 'landb-os' in metadata.keys():
+            os_name = metadata['landb-os']
+        elif 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+            os_name = image_metadata['properties']['os']
+
+        if 'landb-osversion' in metadata.keys():
+            os_version = metadata['landb-osversion']
+        elif 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+            os_version = image_metadata['properties']['os_version']
+
+        landb_operating_system = {'Name': os_name, 'Version': os_version}
+
+        user_name = self.db.instance_get_by_uuid(admin_context,
+                                                 instance_uuid)["user_id"]
+        person_id = client_xldap.user_exists(user_name)
+        if not person_id:
+            LOG.error(_("Cannot verify if USER exists: %s" % user_name))
+            raise exception.CernInvalidUser()
+        landb_responsible = {'PersonID':person_id}
+        landb_mainuser = {'PersonID':person_id}
+
+        if 'landb-mainuser' in metadata.keys():
+            user_id = client_xldap.user_exists(metadata['landb-mainuser'])
+            egroup_id = client_xldap.egroup_exists(metadata['landb-mainuser'])
+
+            if user_id:
+                landb_mainuser = {'PersonID':user_id}
+            elif egroup_id:
+                landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for main user"))
+                raise exception.CernInvalidUserEgroup()
+
+        if 'landb-responsible' in metadata.keys():
+            user_id = client_xldap.user_exists(metadata['landb-responsible'])
+            egroup_id = client_xldap.egroup_exists(metadata['landb-responsible'])
+
+            if user_id:
+                landb_responsible = {'PersonID':user_id}
+            elif egroup_id:
+                landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for responsible user"))
+                raise exception.CernInvalidUserEgroup()
+
+        landb_description = ""
+        if 'landb-description' in metadata.keys():
+            landb_description = metadata['landb-description']
+
+        client_landb.vm_update(device_name,
+                               new_device=vm_name,
+                               description=landb_description,
+                               operating_system=landb_operating_system,
+                               responsible_person=landb_responsible,
+                               user_person=landb_mainuser)
+
+        if 'landb-ipv6ready' in metadata.keys():
+            if metadata['landb-ipv6ready'].lower() == 'true':
+                client_landb.ipv6ready_update(vm_name, True)
+            else:
+                client_landb.ipv6ready_update(vm_name, False)
+
+        if 'landb-alias' in metadata.keys():
+            new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
+            client_landb.alias_update(vm_name, new_alias)
+        else:
+            client_landb.alias_update(vm_name, [])
+
+
+    def _deallocate_address(self, context, address, host=None, teardown=True,
+                            instance=None):
+
+        fixed_ip_ref = self.db.fixed_ip_get_by_address(context, address)
+        vif_id = fixed_ip_ref['virtual_interface_id']
+
+        instance = self.db.instance_get_by_uuid(
+                context.elevated(read_deleted='yes'),
+                fixed_ip_ref['instance_uuid'])
+
+        self._do_trigger_security_group_members_refresh_for_instance(
+            instance['uuid'])
+
+        if self._validate_instance_zone_for_dns_domain(context, instance):
+            for n in self.instance_dns_manager.get_entries_by_address(address,
+                                                     self.instance_dns_domain):
+                self.instance_dns_manager.delete_entry(n,
+                                                      self.instance_dns_domain)
+
+        self.db.fixed_ip_update(context, address,
+                                {'allocated': False,
+                                 'virtual_interface_id': None,
+                                 'host': None})
+
+        network = self._get_network_by_id(context, fixed_ip_ref['network_id'])
+        self._teardown_network_on_host(context, network)
+
+        self.db.fixed_ip_disassociate(context, address)
+
+        client_landb = cern.LanDB()
+        device_name = client_landb.device_hostname(address)
+        client_landb.vm_delete(device_name)
+
+        time.sleep(1)
+        client_ad = cern.ActiveDirectory()
+        client_ad.delete(device_name)
+# CERN
