@@ -1310,6 +1310,77 @@ class CellCommands(object):
         print(fmt % ('-' * 3, '-' * 10, '-' * 6, '-' * 10, '-' * 15,
                 '-' * 5, '-' * 10))
 
+# CERN
+class CernCommands(object):
+    """Class for CERN newtork integration."""
+
+    def network_create(self, label=None, conf=None, num_networks=None,
+               network_size=None, multi_host=None, vlan_start=None,
+               vpn_start=None, fixed_range_v6=None, gateway=None,
+               gateway_v6=None, bridge=None, bridge_interface=None,
+               dns1=None, dns2=None, project_id=None, priority=None,
+               uuid=None):
+        """Creates cern network"""
+
+        net_manager = importutils.import_object(CONF.network_manager)
+        net_manager.create_networks(context.get_admin_context(),
+                                    label='CERN_NETWORK',
+                                    cidr='0.0.0.0/0',
+                                    multi_host=0,
+                                    num_networks=int('1'),
+                                    network_size=int('0'),
+                                    vlan_start=int('0'),
+                                    vpn_start=int('0'),
+                                    cidr_v6='::/0',
+                                    gateway='0.0.0.0',
+                                    gateway_v6='::',
+                                    bridge='br100',
+                                    bridge_interface=None,
+                                    dns1='0.0.0.0',
+                                    dns2='0.0.0.0',
+                                    project_id=None,
+                                    priority=0,
+                                    uuid=uuid)
+
+    def network_list(self):
+        """Updates cern network"""
+        ctxt = context.get_admin_context()
+
+        try:
+            fixed_ips = db.fixed_ip_get_all(ctxt)
+        except Exception as e:
+            print (_("Error: %s") % e)
+            sys.exit(2)
+
+        instances = db.instance_get_all(context.get_admin_context())
+        instances_by_id = {}
+        for instance in instances:
+            instances_by_id[instance['id']] = instance
+
+        print (_("%-20s\t%-20s\t%-20s\t%-20s\t%-20s\t%-20s") % \
+                                                    (_('ip address'),
+                                                     _('mac address'),
+                                                     _('compute node'),
+                                                     _('network cluster'),
+                                                     _('allocated'),
+                                                     _('reserved')))
+
+        for fixed_ip in fixed_ips:
+            print (_("%-20s\t%-20s\t%-20s\t%-20s\t%-20s\t%-20s") % \
+                                                     (fixed_ip['address'],
+                                                      fixed_ip['mac'],
+                                                      fixed_ip['host'],
+                                                      fixed_ip['netcluster'],
+                                                      fixed_ip['allocated'],
+                                                      fixed_ip['reserved']))
+
+    @args('--cluster-name', dest="clustername", metavar="<clustername>",
+      help='CERN network cluster name')
+    def network_update(self, clustername):
+        """Update cern network"""
+        net_manager = importutils.import_object(CONF.network_manager)
+        net_manager.update_network(context.get_admin_context(), clustername)
+# CERN
 
 class CellV2Commands(object):
     """Commands for managing cells v2."""
@@ -1448,6 +1519,9 @@ CATEGORIES = {
     'shell': ShellCommands,
     'vm': VmCommands,
     'vpn': VpnCommands,
+# CERN
+    'cern': CernCommands,
+# CERN
 }
 
 
