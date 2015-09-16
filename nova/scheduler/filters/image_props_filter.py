@@ -44,7 +44,9 @@ class ImagePropertiesFilter(filters.BaseHostFilter):
     def _instance_supported(self, host_state, image_props,
                             hypervisor_version):
         img_arch = image_props.get('architecture', None)
-        img_h_type = image_props.get('hypervisor_type', None)
+# CERN
+        img_h_type = image_props.get('hypervisor_type', 'qemu')
+# CERN
         img_vm_mode = image_props.get('vm_mode', None)
         checked_img_props = (
             arch.canonicalize(img_arch),
