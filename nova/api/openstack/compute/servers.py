@@ -771,10 +771,10 @@ class Controller(wsgi.Controller):
         update_dict = {}
 
         if 'name' in body['server']:
-            name = body['server']['name']
-            self._validate_server_name(name)
-            update_dict['display_name'] = name.strip()
-
+# CERN
+            msg = _("Hostname cannot be updated.")
+            raise exc.HTTPBadRequest(explanation=msg)
+# CERN
         if 'accessIPv4' in body['server']:
             access_ipv4 = body['server']['accessIPv4']
             if access_ipv4:
