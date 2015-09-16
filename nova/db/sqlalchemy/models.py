@@ -893,7 +893,20 @@ class FixedIp(BASE, NovaBase, models.SoftDeleteMixin):
                                 'VirtualInterface.id,'
                                 'FixedIp.deleted == 0,'
                                 'VirtualInterface.deleted == 0)')
+# CERN
+    mac = Column(String(255), unique=True)
+    netcluster = Column(String(255))
+    address_v6 = Column(String(255))
+# CERN
 
+# CERN
+class CernNetwork(BASE, NovaBase):
+    """Represents an Ip Service configuration at CERN."""
+    __tablename__ = 'cern_network'
+    id = Column(Integer, primary_key=True)
+    netcluster = Column(String(255))
+    host = Column(String(255), unique=True)
+# CERN
 
 class FloatingIp(BASE, NovaBase, models.SoftDeleteMixin):
     """Represents a floating IP that dynamically forwards to a fixed IP."""
