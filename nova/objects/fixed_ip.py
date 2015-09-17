@@ -67,6 +67,11 @@ class FixedIP(obj_base.NovaPersistentObject, obj_base.NovaObject,
         # because it would create a bit of a loop between FixedIP
         # and FloatingIP
         'floating_ips': fields.ObjectField('FloatingIPList'),
+# CERN
+        'mac': fields.StringField(),
+        'netcluster': fields.StringField(),
+        'address_v6': fields.StringField(),
+# CERN
         }
 
     def obj_make_compatible(self, primitive, target_version):
