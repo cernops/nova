@@ -211,6 +211,16 @@ class IptablesFirewallDriver(FirewallDriver):
                                                             network_info)
         self._add_filters('local', ipv4_rules, ipv6_rules)
         self._add_filters(chain_name, inst_ipv4_rules, inst_ipv6_rules)
+# CERN
+        try:
+            v4_subnets = self._get_subnets(network_info, 4)
+            ips_v4 = [ip['address'] for subnet in v4_subnets
+                                for ip in subnet['ips']]
+            self.iptables.ipv4['filter'].add_rule('FORWARD', '-s %s -d 0.0.0.0/0 -j ACCEPT' % (ips_v4[0],))
+        except Exception as e:
+            LOG.warn(_("Failed to add firewall rule. %s" % str(e)))
+            pass
+# CERN
 
     def remove_filters_for_instance(self, instance):
         chain_name = self._instance_chain_name(instance)
@@ -218,6 +228,17 @@ class IptablesFirewallDriver(FirewallDriver):
         self.iptables.ipv4['filter'].remove_chain(chain_name)
         if CONF.use_ipv6:
             self.iptables.ipv6['filter'].remove_chain(chain_name)
+# CERN
+        try:
+            instance, network_info = self.instance_info[instance['id']]
+            v4_subnets = self._get_subnets(network_info, 4)
+            ips_v4 = [ip['address'] for subnet in v4_subnets
+                                for ip in subnet['ips']]
+            self.iptables.ipv4['filter'].remove_rule('FORWARD', '-s %s -d 0.0.0.0/0 -j ACCEPT' % (ips_v4[0],))
+        except Exception as e:
+            LOG.warn(_("Cannot remove firewall rule. %s" % str(e)))
+        self.instance_info.pop(instance['id'], None)
+# CERN
 
     def _instance_chain_name(self, instance):
         return 'inst-%s' % (instance.id,)
