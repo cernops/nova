@@ -2891,6 +2891,19 @@ class API(base.Base):
                                            migration,
                                            migration.source_compute,
                                            quotas.reservations or [])
+# CERN
+        try:
+            fixed_ips = self.db.fixed_ip_get_by_instance(context,
+                                                         instance['uuid'])
+            vm_ip = (fixed_ips[0])['address']
+
+            client = cern.LanDB()
+            host = (instance['host'].lower()).replace('.cern.ch', '')
+            device_name = client.device_hostname(vm_ip)
+            client.device_migrate(device_name, host)
+        except Exception as e:
+            LOG.error(_("Cannot migrate VM in landb - %s" % str(e)))
+# CERN
 
     @staticmethod
     def _resize_cells_support(context, quotas, instance,
@@ -2999,7 +3012,12 @@ class API(base.Base):
         instance.save(expected_task_state=[None])
 
         filter_properties = {'ignore_hosts': []}
-
+# CERN
+        ipservice = self.db.cern_netcluster_get(context, instance['host'])
+        ignore_hosts = self.db.cern_ignore_hosts(context,
+                                                 ipservice['netcluster'])
+        filter_properties['ignore_hosts'].extend(ignore_hosts)
+# CERN
         if not CONF.allow_resize_to_same_host:
             filter_properties['ignore_hosts'].append(instance.host)
 
