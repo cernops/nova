@@ -99,7 +99,10 @@ from nova.virt import storage_users
 from nova.virt import virtapi
 from nova import volume
 from nova.volume import encryptors
-
+# CERN
+import time
+from nova import cern
+# CERN
 
 compute_opts = [
     cfg.StrOpt('console_host',
@@ -233,6 +236,11 @@ timeout_opts = [
                default=60,
                help="Total amount of time to wait in seconds for an instance "
                     "to perform a clean shutdown."),
+# CERN
+    cfg.IntOpt('landb_dns_timeout',
+               default=1200,
+               help="DNS timeout in seconds.")
+# CERN
 ]
 
 running_deleted_opts = [
@@ -1444,6 +1452,34 @@ class ComputeManager(manager.Manager):
 
         return [_decode(f) for f in injected_files]
 
+# CERN
+    def _cern_ready(self, context, instance):
+        if instance['hostname'] == "server-"+str(instance['uuid']):
+            return
+
+        instance_hostname = str(instance['hostname'])
+        meta = utils.instance_meta(instance)
+
+        if ('cern-services' in meta.keys()\
+            and meta['cern-services'].lower() != 'false')\
+            or ('cern-services' not in meta.keys()):
+            client = cern.ActiveDirectory()
+            client.register(instance_hostname)
+
+            wait_time = 0
+            while(wait_time < CONF.landb_dns_timeout):
+                try:
+                    socket.gethostbyname(instance_hostname)
+                    break
+                except:
+                    LOG.info(_("Waiting for DNS - %s" % instance['uuid']))
+                    time.sleep(15)
+                    wait_time=wait_time+15
+            else:
+                LOG.error(_("DNS update failed - %s" % instance['uuid']))
+                raise exception.CernDNS()
+# CERN
+
     def _validate_instance_group_policy(self, context, instance,
             filter_properties):
         # NOTE(russellb) Instance group policy is enforced by the scheduler.
@@ -2174,7 +2210,10 @@ class ComputeManager(manager.Manager):
             msg = _('Failed to allocate the network(s), not rescheduling.')
             raise exception.BuildAbortException(instance_uuid=instance.uuid,
                     reason=msg)
-
+# CERN
+        network_info.wait(do_raise=True)
+        self._cern_ready(context, instance)
+# CERN
         try:
             # Verify that all the BDMs have a device_name set and assign a
             # default to the ones missing it with the help of the driver.
