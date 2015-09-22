@@ -321,6 +321,18 @@ class IptablesManager(object):
         # the snat chain.
         self.ipv4['nat'].add_chain('float-snat')
         self.ipv4['nat'].add_rule('snat', '-j $float-snat')
+# CERN
+        self.ipv4['filter'].add_rule('INPUT',
+                                     '-s %s -j ACCEPT' %(CONF.metadata_host))
+        self.ipv4['filter'].add_rule('FORWARD',
+                                     '-m pkttype --pkt-type broadcast -j ACCEPT')
+        self.ipv4['nat'].add_rule('PREROUTING',
+                                  '-s 0.0.0.0/0 -d 169.254.169.254/32 '
+                                  '-p tcp -m tcp --dport 80 -j DNAT '
+                                  '--to-destination %s:%s' %
+                                          (CONF.metadata_host,
+                                           CONF.metadata_port))
+# CERN
 
     def defer_apply_on(self):
         self.iptables_apply_deferred = True
