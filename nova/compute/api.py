@@ -1381,7 +1381,9 @@ class API(base.Base):
                                                         default_hostname)
 
     def _default_display_name(self, instance_uuid):
-        return "Server %s" % instance_uuid
+# CERN
+        return "server-%s" % instance_uuid
+# CERN
 
     def _default_host_name(self, instance_uuid):
         return "Server-%s" % instance_uuid
