@@ -120,7 +120,10 @@ class Controller(object):
                                                              server,
                                                              metadata,
                                                              delete)
-
+# CERN
+        except exception.CernLanDBUpdate as error:
+            raise exc.HTTPBadRequest(explanation=error.format_message())
+# CERN
         except exception.InstanceNotFound:
             msg = _('Server does not exist')
             raise exc.HTTPNotFound(explanation=msg)
@@ -171,7 +174,10 @@ class Controller(object):
         server = common.get_instance(self.compute_api, context, server_id)
         try:
             self.compute_api.delete_instance_metadata(context, server, id)
-
+# CERN
+        except exception.CernLanDBUpdate as error:
+            raise exc.HTTPBadRequest(explanation=error.format_message())
+# CERN
         except exception.InstanceNotFound:
             msg = _('Server does not exist')
             raise exc.HTTPNotFound(explanation=msg)
