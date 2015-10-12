@@ -198,22 +198,39 @@ class LanDB:
         """Update alias"""
         try:
             old_alias = self.getDeviceInfo(device).Interfaces[0].IPAliases
-            if old_alias == None: old_alias = []
+        except: 
+            LOG.error(_("Cannot connect to LanDB"))
+            raise exception.CernLanDB()
 
-            for alias in new_alias:
-                if (alias not in old_alias) and self.device_exists(alias):
-                    LOG.error(_("Alias already exists"))
-                    raise exception.CernInvalidHostname()
+        if old_alias == None: old_alias = []
 
-            for alias in old_alias:
+        old_alias_set = set([x.upper() for x in old_alias])
+        new_alias_set = set([x.upper() for x in new_alias])
+
+        add_alias = new_alias_set - old_alias_set
+        remove_alias = old_alias_set - new_alias_set
+
+        LOG.debug(_("Alias to add: %s" % add_alias))
+        LOG.debug(_("Alias to remove: %s" % remove_alias))
+
+        for alias in new_alias_set:
+            if self.device_exists(alias):
+                LOG.error(_("Alias already exists: %s" % str(alias)))
+                msg = _("%s - The device already exists or is not "
+                     "a valid hostname" % str(alias))
+                raise exception.CernInvalidHostname(msg)
+
+        try:
+            for alias in remove_alias:
                 self.__unset_alias(device, alias)
 
-            for alias in new_alias:
+            for alias in add_alias:
                 self.__set_alias(device, alias)
-        except exception.CernInvalidHostname:
-             msg = _("%s - The device already exists or is not "
+        except Exception as e:
+            self.__recover_alias(device, old_alias)
+            msg = _("%s - The device already exists or is not "
                      "a valid hostname" % str(alias))
-             raise exception.CernInvalidHostname(msg)
+            raise exception.CernInvalidHostname(msg)
 
 
     def ipv6ready_update(self, device, boolean):
@@ -222,6 +239,26 @@ class LanDB:
             self.client.service.deviceUpdateIPv6Ready(device, boolean)
         except Exception as e:
             LOG.error(_("Cannot change IPv6-ready: %s" % str(e)))
+            raise exception.CernLanDBUpdate()
+
+
+    def __recover_alias(self, device, old_alias):
+        """Try to recover alias after an error"""
+        LOG.info(_("Trying to recover old alias"))
+        try:
+            current_alias = self.getDeviceInfo(device).Interfaces[0].IPAliases
+        except:
+            LOG.error(_("Cannot connect to LanDB"))
+            raise exception.CernLanDB()
+
+        for alias in current_alias:
+            self.client.service.interfaceRemoveAlias(device, alias)
+
+        try:
+            for alias in old_alias:
+                self.client.service.interfaceAddAlias(device, alias)
+        except Exception as e:
+            LOG.error(_("Cannot recover all alias: %s" % str(e)))
             raise exception.CernLanDBUpdate()
 
 
