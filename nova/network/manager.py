@@ -565,9 +565,11 @@ class NetworkManager(manager.Manager):
                     # NOTE(vish): I strongly suspect the v6 subnet is not used
                     #             anywhere, but support it just in case
                     # add the v6 address to the v6 subnet
-                    address = ipv6.to_global(fixed_ip.network.cidr_v6,
-                                             vif.address,
-                                             fixed_ip.network.project_id)
+# CERN
+                    fixed_ipv6 = objects.FixedIPList.get_by_virtual_interface_id(
+                        context, vif.id)
+                    address = fixed_ipv6[0].address_v6
+# CERN
                     model_ip = network_model.FixedIP(address=address)
                     current['network']['subnets'][1]['ips'].append(model_ip)
 
