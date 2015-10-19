@@ -61,8 +61,11 @@ from nova.objects import quotas as quotas_obj
 from nova import servicegroup
 from nova import utils
 # CERN
+from nova.api.openstack import common
+from nova.compute import utils as compute_utils
+from nova import compute
+from nova import image
 from nova import cern
-import nova.image.glance
 import time
 import string
 import random
@@ -2518,18 +2521,14 @@ class CernManager(NetworkManager):
             instance.save()
             vm_name = device_name
 
-        try:
-            image_id = (self.db.instance_get_by_uuid(admin_context,
-                                                instance_uuid))['image_ref']
-        except Exception as e:
-            LOG.info(_("Cannot get image id for instance %s - %s" %
-                (str(instance_uuid), str(e))))
+        compute_api = compute.API()
+        image_api = image.API()
 
-        if image_id:
-            image_service = nova.image.glance.get_default_image_service()
-            image_metadata = image_service.show(admin_context, image_id)
-        else:
-            image_metadata = {}
+        instance = common.get_instance(compute_api, admin_context,
+            instance_uuid)
+
+        image_metadata = compute_utils.get_image_metadata(
+                admin_context, image_api, instance.image_ref, instance)
 
         os_name = 'UNKNOWN'
         os_version = 'UNKNOWN'
