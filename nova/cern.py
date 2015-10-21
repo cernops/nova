@@ -323,7 +323,7 @@ class LanDB:
         try:
             return self.client.service.getDeviceInfo(device)
         except Exception as e:
-            LOG.error(_("Cannot get VM netwok info - %s" % str(e)))
+            LOG.error(_("Cannot get VM network info - %s" % str(e)))
             raise exception.CernLanDB()
 
 
