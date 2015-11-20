@@ -2501,11 +2501,12 @@ class API(base.Base):
             return sense * (new_flavor[resource] - old_flavor[resource])
 
         deltas = {}
-        if compare * _quota_delta('vcpus') > 0:
-            deltas['cores'] = _quota_delta('vcpus')
-        if compare * _quota_delta('memory_mb') > 0:
-            deltas['ram'] = _quota_delta('memory_mb')
-
+# CERN
+        # if compare * _quota_delta('vcpus') > 0:
+        #     deltas['cores'] = _quota_delta('vcpus')
+        # if compare * _quota_delta('memory_mb') > 0:
+        #     deltas['ram'] = _quota_delta('memory_mb')
+# CERN
         return deltas
 
     @staticmethod
