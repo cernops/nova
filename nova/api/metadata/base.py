@@ -311,14 +311,16 @@ class InstanceMetadata(object):
                 self.instance.key_name: self.instance.key_data
             }
 
-            keypair = keypair_obj.KeyPair.get_by_name(
-                context.get_admin_context(), self.instance.user_id,
-                self.instance.key_name)
-            metadata['keys'] = [
-                {'name': keypair.name,
-                 'type': keypair.type,
-                 'data': keypair.public_key}
-            ]
+# CERN
+            # keypair = keypair_obj.KeyPair.get_by_name(
+            #     context.get_admin_context(), self.instance.user_id,
+            #     self.instance.key_name)
+            # metadata['keys'] = [
+            #     {'name': keypair.name,
+            #      'type': keypair.type,
+            #      'data': keypair.public_key}
+            # ]
+# CERN
 
         metadata['hostname'] = self._get_hostname()
         metadata['name'] = self.instance.display_name
