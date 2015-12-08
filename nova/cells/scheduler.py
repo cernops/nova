@@ -77,7 +77,9 @@ class CellsScheduler(base.Base):
             instance_values.pop('info_cache')
             instance_values.pop('security_groups')
             instance_values.pop('flavor')
-
+#
+            numa_topology = instance_values.pop('numa_topology')
+#
             # FIXME(danms): The instance was brutally serialized before being
             # sent over RPC to us. Thus, the pci_requests value wasn't really
             # sent in a useful form. Since it was getting ignored for cells
@@ -91,6 +93,12 @@ class CellsScheduler(base.Base):
             instance.flavor = instance_type
             instance.old_flavor = None
             instance.new_flavor = None
+#
+            if numa_topology:
+                instance_numa_topology = objects.InstanceNUMATopology()
+                instance_numa_topology.cells = numa_topology['cells']
+                instance.numa_topology = instance_numa_topology
+#
             instance = self.compute_api.create_db_entry_for_new_instance(
                     ctxt,
                     instance_type,
