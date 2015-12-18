@@ -21,6 +21,10 @@ from nova.i18n import _
 from nova import objects
 from nova.scheduler import utils as scheduler_utils
 from nova import utils
+# CERN
+from nova import db
+from nova import context
+# CERN
 
 LOG = logging.getLogger(__name__)
 
@@ -158,11 +162,19 @@ class LiveMigrationTask(base.TaskBase):
             self.instance.system_metadata)
         request_spec = scheduler_utils.build_request_spec(self.context, image,
                                                           [self.instance])
-
+# CERN
+        ctxt = context.get_admin_context()
+        ipservice = db.cern_netcluster_get(ctxt, self.instance['host'])
+        ignore_hosts = db.cern_ignore_hosts(ctxt, ipservice['netcluster'])
+# CERN
         host = None
         while host is None:
             self._check_not_over_max_retries(attempted_hosts)
-            filter_properties = {'ignore_hosts': attempted_hosts}
+# CERN
+            filter_properties = {'ignore_hosts': ignore_hosts}
+            filter_properties['ignore_hosts'].extend(attempted_hosts)
+            LOG.info("Live migration skipping hosts: %s" % filter_properties['ignore_hosts'])
+# CERN
             scheduler_utils.setup_instance_group(self.context, request_spec,
                                                  filter_properties)
             host = self.scheduler_client.select_destinations(self.context,
