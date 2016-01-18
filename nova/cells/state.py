@@ -37,6 +37,9 @@ from nova import exception
 from nova.i18n import _LE
 from nova import objects
 from nova import rpc
+# CERN
+from nova import servicegroup
+# CERN
 from nova import utils
 
 cell_state_manager_opts = [
@@ -167,7 +170,9 @@ class CellStateManager(base.Base):
         self.parent_cells = {}
         self.child_cells = {}
         self.last_cell_db_check = datetime.datetime.min
-
+# CERN
+        self.servicegroup_api = servicegroup.API()
+# CERN
         attempts = 0
         while True:
             try:
@@ -276,7 +281,11 @@ class CellStateManager(base.Base):
                 service = service_refs.get(host)
                 if not service or service['disabled']:
                     continue
-
+# CERN
+                alive = self.servicegroup_api.service_is_up(service)
+                if not alive:
+                    continue
+# CERN
                 chost = compute_hosts[host]
                 chost['free_ram_mb'] += compute['free_ram_mb']
                 free_disk = compute['free_disk_gb'] * 1024
