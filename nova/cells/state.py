@@ -275,12 +275,13 @@ class CellStateManager(base.Base):
             for compute in compute_nodes:
                 host = compute.host
                 service = service_refs.get(host)
+                if not service or service['disabled']:
+                    continue
 # CERN
                 alive = self.servicegroup_api.service_is_up(service)
-                if not service or service['disabled'] or not alive:
-# CERN
+                if not alive:
                     continue
-
+# CERN
                 compute_hosts[host] = {
                         'free_ram_mb': compute['free_ram_mb'],
                         'free_disk_mb': compute['free_disk_gb'] * 1024,
