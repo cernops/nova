@@ -3189,6 +3189,7 @@ class API(base.Base):
         landb_responsible = None
         landb_mainuser = None
 
+
         if key == 'landb-alias':
             client = cern.LanDB()
             client.alias_update(instance['hostname'], [])
@@ -3196,6 +3197,10 @@ class API(base.Base):
         if key == 'landb-ipv6ready':
             client = cern.LanDB()
             client.ipv6ready_update(instance['hostname'], False)
+
+        if key == 'landb-internet-connectivity':
+            client = cern.LanDB()
+            client.internet_update(instance['hostname'], True)
 
         if key == 'landb-os':
             landb_update = True
@@ -3226,26 +3231,50 @@ class API(base.Base):
         if key == 'landb-mainuser':
             landb_update = True
 
-            client = cern.Xldap()
-            user_id = client.user_exists(instance['user_id'])
-
-            if user_id:
-                landb_mainuser = {'PersonID':user_id}
+            client_xldap = cern.Xldap()
+            client_key = cern.Keystone(context)
+            project_mainuser = client_key.get_project_mainuser(instance['project_id'])
+            if project_mainuser:
+                user_id = client_xldap.user_exists(project_mainuser)
+                egroup_id = client_xldap.egroup_exists(project_mainuser)
+                if user_id:
+                    landb_mainuser = {'PersonID':user_id}
+                elif egroup_id:
+                    landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
             else:
-                LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
-                raise exception.CernInvalidUserEgroup()
+                user_id = client_xldap.user_exists(instance['user_id'])
+                if user_id:
+                    landb_mainuser = {'PersonID':user_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
 
         if key == 'landb-responsible':
             landb_update = True
 
-            client = cern.Xldap()
-            user_id = client.user_exists(instance['user_id'])
-
-            if user_id:
-                landb_responsible = {'PersonID':user_id}
+            client_xldap = cern.Xldap()
+            client_key = cern.Keystone(context)
+            project_responsible = client_key.get_project_responsible(instance['project_id'])
+            if project_responsible:
+                user_id = client_xldap.user_exists(project_responsible)
+                egroup_id = client_xldap.egroup_exists(project_responsible)
+                if user_id:
+                    landb_responsible = {'PersonID':user_id}
+                elif egroup_id:
+                    landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
             else:
-                LOG.error(_("Cannot find user/egroup for responsible user. %s" % str(e)))
-                raise exception.CernInvalidUserEgroup()
+                user_id = client_xldap.user_exists(instance['user_id'])
+                if user_id:
+                    landb_responsible = {'PersonID':user_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
 
         if key == 'landb-description':
             landb_update = True
@@ -3309,6 +3338,12 @@ class API(base.Base):
                 client.ipv6ready_update(instance['hostname'], True)
             else:
                 client.ipv6ready_update(instance['hostname'], False)
+
+        if 'landb-internet-connectivity' in metadata.keys():
+            if metadata['landb-internet-connectivity'].lower() == 'true':
+                client.internet_update(instance['hostname'], True)
+            else:
+                client.internet_update(instance['hostname'], False)
 
         if 'landb-os' in metadata.keys():
             landb_update = True

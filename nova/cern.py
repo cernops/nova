@@ -25,6 +25,7 @@ from suds.xsd.doctor import ImportDoctor, Import
 from suds.client import Client
 
 import logging as pylog
+from keystoneclient.v3 import client as keyclient
 from nova import exception
 from nova.i18n import _
 from oslo_log import log as logging
@@ -37,7 +38,10 @@ cern_network_opts = [
         help='landb username'),
     cfg.StrOpt('landb_password',
         default='', secret=True,
-        help='landb password')
+        help='landb password'),
+    cfg.StrOpt('landb_keystone',
+        default='', secret=False,
+        help='landb keystone auth'),
 ]
 
 CONF = cfg.CONF
@@ -46,6 +50,37 @@ CONF.register_opts(cern_network_opts)
 
 LOG = logging.getLogger(__name__)
 pylog.getLogger('suds.client').setLevel(pylog.CRITICAL)
+
+
+class Keystone:
+    def __init__(self, context, endpoint=None):
+        auth_token = context.auth_token
+        if not endpoint:
+            endpoint = CONF.landb_keystone
+        self.client = keyclient.Client(token=auth_token, endpoint=endpoint)
+
+
+    def _get_project(self, project_id):
+        try:
+            project =  self.client.projects.get(project_id)
+        except Exception as e:
+            LOG.error(_("Cannot get project: %s" % str(e)))
+            raise exception.CernLanDB()
+        return project
+
+    def get_project_mainuser(self, project_id):
+        project = self._get_project(project_id)
+        mainuser = None
+        if project and 'landb-mainuser' in project.__dict__.keys():
+            mainuser = project.__dict__['landb-mainuser']
+        return mainuser
+
+    def get_project_responsible(self, project_id):
+        project = self._get_project(project_id)
+        responsible = None
+        if project and 'landb-responsible' in project.__dict__.keys():
+            responsible = project.__dict__['landb-responsible']
+        return responsible
 
 
 class LanDB:
@@ -124,8 +159,8 @@ class LanDB:
                         'Description': description,
                         'Tag': tag,
                         'OperatingSystem': operating_system,
-                        'ResponsiblePerson':responsible_person,
-                        'UserPerson':user_person})
+                        'ResponsiblePerson': responsible_person,
+                        'UserPerson': user_person})
         except Exception as e:
             LOG.error(_("Cannot update landb: %s" % str(e)))
             raise exception.CernLanDBUpdate(str(e))
@@ -242,6 +277,29 @@ class LanDB:
             raise exception.CernLanDBUpdate()
 
 
+    def internet_update(self, device, boolean):
+        """Update VM internet connectivity"""
+        clusters = self.vmGetClusterMembership(device)
+        try:
+            netcluster = [x for x in clusters if x.startswith('VMPOOL')][0]
+        except Exception as e:
+            LOG.error(_("Can't find netcluster: %s" % str(e)))
+            raise exception.CernLanDBUpdate()
+
+        parent = self.vmGetInfo(device).VMParent
+
+        if boolean:
+            internet = 1
+        else:
+            internet = 0
+
+        try:
+            self.client.service.vmMove(device, netcluster, parent, {'InternetConnectivity':internet})
+        except Exception as e:
+            LOG.error(_("Cannot update internet connectivity: %s" % str(e)))
+            raise exception.CernLanDBUpdate()
+
+
     def __recover_alias(self, device, old_alias):
         """Try to recover alias after an error"""
         LOG.info(_("Trying to recover old alias"))
@@ -297,6 +355,24 @@ class LanDB:
         except Exception as e:
             LOG.error(_("Cannot get network services for network cluster - "
                         "%s - %s"), cluster, str(e))
+            raise exception.CernLanDB()
+
+
+    def vmGetClusterMembership(self, device):
+        """Get device cluster"""
+        try:
+            return self.client.service.vmGetClusterMembership(device)
+        except Exception as e:
+            LOG.error(_("Cannot get VM cluster: %s" % str(e)))
+            raise exception.CernLanDB()
+
+
+    def vmGetInfo(self, device):
+        """Get vm device cluster"""
+        try:
+            return self.client.service.vmGetInfo(device)
+        except Exception as e:
+            LOG.error(_("Cannot get VM info: %s" % str(e)))
             raise exception.CernLanDB()
 
 
