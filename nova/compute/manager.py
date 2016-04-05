@@ -1457,6 +1457,9 @@ class ComputeManager(manager.Manager):
         if instance['hostname'] == "server-"+str(instance['uuid']):
             return
 
+        if instance['hostname'].startswith('server-r-'):
+            return
+
         instance_hostname = str(instance['hostname'])
         meta = utils.instance_meta(instance)
 
