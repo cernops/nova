@@ -6531,7 +6531,7 @@ def cern_fixed_ip_get_by_address(context, xip):
     return ips
 
 
-@require_admin_context
+@require_context
 def aggregate_metadata_get_all_by_key(context, key=None):
     query = model_query(context, models.Aggregate).join(
             "_metadata")
@@ -6547,7 +6547,7 @@ def aggregate_metadata_get_all_by_key(context, key=None):
     return metadata
 
 
-@require_admin_context
+@require_context
 def netcluster_get_by_host(context, host):
     result = model_query(context, models.CernNetwork.netcluster,
                  read_deleted="no", base_model=models.CernNetwork).\
@@ -6559,7 +6559,7 @@ def netcluster_get_by_host(context, host):
     return result[0]
 
 
-@require_admin_context
+@require_context
 def netcluster_count_free_ips(context, netcluster):
     return model_query(context, models.FixedIp, read_deleted="no").\
                filter_by(netcluster=netcluster).\
