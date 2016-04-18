@@ -17,7 +17,7 @@
 Flavors target cell filter.
 """
 
-from oslo.config import cfg
+from oslo_config import cfg
 from nova.cells import filters
 from oslo_log import log as logging
 
