@@ -17,7 +17,7 @@
 Project target cell filter.
 """
 
-from oslo.config import cfg
+from oslo_config import cfg
 from nova.cells import filters
 
 cell_project_target_cell_opts = [

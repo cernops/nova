@@ -29,7 +29,7 @@ from keystoneclient.v3 import client as keyclient
 from nova import exception
 from nova.i18n import _
 from oslo_log import log as logging
-from oslo.config import cfg
+from oslo_config import cfg
 
 
 cern_network_opts = [
