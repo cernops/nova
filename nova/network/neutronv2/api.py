@@ -379,9 +379,16 @@ class API(base_api.NetworkAPI):
         """
         port_req_body = {'port': {}}
         try:
+# CERN
             if fixed_ip:
                 port_req_body['port']['fixed_ips'] = [
                     {'ip_address': str(fixed_ip)}]
+            else:
+                host_subnets = port_client.show_host(instance.host)
+                subnet_id = host_subnets['host']['available_random_subnet']
+                port_req_body['port']['fixed_ips'] = [
+                    {'subnet_id': subnet_id}]
+# CERN
             port_req_body['port']['network_id'] = network_id
             port_req_body['port']['admin_state_up'] = True
             port_req_body['port']['tenant_id'] = instance.project_id
