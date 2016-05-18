@@ -1107,8 +1107,10 @@ class Controller(wsgi.Controller):
             self._validate_access_ipv6(body['accessIPv6'])
 
         if 'name' in body:
-            self._validate_server_name(body['name'])
-
+# CERN
+            msg = _("Hostname cannot be updated.")
+            raise exc.HTTPBadRequest(explanation=msg)
+# CERN
         for request_attribute, instance_attribute in attr_map.items():
             try:
                 kwargs[instance_attribute] = body[request_attribute]
