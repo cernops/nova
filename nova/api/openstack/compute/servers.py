@@ -43,6 +43,10 @@ from nova.i18n import _LW
 from nova.image import glance
 from nova import objects
 from nova import utils
+# CERN
+import nova.image.glance
+from nova import cern
+# CERN
 
 ALIAS = 'servers'
 
@@ -523,6 +527,79 @@ class ServersController(wsgi.Controller):
         instance = self._get_server(context, req, id, is_detail=True)
         return self._view_builder.show(req, instance)
 
+    def _cern_validate_landb_hostname(self, name):
+        client_landb = cern.LanDB()
+        client_dns = cern.Dns()
+
+        if len(name) > 64:
+            msg = "Instance name too long"
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        if name[0].isdigit():
+            msg = "Instance name is not a valid hostname"
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        if '.' in name:
+            msg = "Instance name is not a valid hostname"
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        if client_landb.device_exists(name):
+            msg = "Hostname already in use"
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        if client_dns.gethostbyname(name):
+            msg = "Hostname already in DNS. Wait for DNS refresh"
+            raise exc.HTTPBadRequest(explanation=msg)
+
+    def _cern_validate_windows_hostname(self, context, image_uuid):
+        if image_uuid != '':
+            image_service = nova.image.glance.get_default_image_service()
+            image_metadata = image_service.show(context, image_uuid)
+        else:
+            image_metadata = {}
+
+        if 'properties' in image_metadata.keys()\
+                         and 'os' in image_metadata['properties'].keys():
+            if (image_metadata['properties']['os']).lower() == 'windows' and\
+                                                            len(name) > 15:
+                msg = ("Instance name too long. Windows images only support "
+                  "15 character hostname")
+                raise exc.HTTPBadRequest(explanation=msg)
+
+    def _cern_validate_metadata(self, metadata):
+        client_landb = cern.LanDB()
+        client_xldap = cern.Xldap()
+        if 'landb-responsible' in metadata.keys() and\
+            metadata['landb-responsible'] != '':
+            user_id = client_xldap.user_exists(metadata['landb-responsible'])
+            egroup_id = client_xldap.egroup_exists(metadata['landb-responsible'])
+            if user_id or egroup_id:
+                pass
+            else:
+                msg = "Cannot find user/egroup for responsible user"
+                raise exc.HTTPBadRequest(explanation=msg)
+
+        if 'landb-mainuser' in metadata.keys() and\
+            metadata['landb-mainuser'] != '':
+            user_id = client_xldap.user_exists(metadata['landb-mainuser'])
+            egroup_id = client_xldap.egroup_exists(metadata['landb-mainuser'])
+            if user_id or egroup_id:
+                pass
+            else:
+                msg = "Cannot find user/egroup for responsible user"
+                raise exc.HTTPBadRequest(explanation=msg)
+
+        if 'landb-alias' in metadata.keys():
+            new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
+            for alias in new_alias:
+                try:
+                    if client_landb.device_exists(alias):
+                        raise
+                except:
+                    msg = _("Alias - %s - The device already exists or is not "
+                            "a valid hostname" % str(alias))
+                    raise exc.HTTPBadRequest(explanation=msg)
+
     @wsgi.response(202)
     @extensions.expected_errors((400, 403, 409, 413))
     @validation.schema(schema_server_create_v20, '2.0', '2.0')
@@ -582,7 +659,12 @@ class ServersController(wsgi.Controller):
             authorize(context, target, 'create:attach_volume')
 
         image_uuid = self._image_from_req_data(server_dict, create_kwargs)
-
+# CERN
+        self._cern_validate_landb_hostname(name)
+        self._cern_validate_windows_hostname(context, image_uuid)
+        metadata = server_dict.get('metadata', {})
+        self._cern_validate_metadata(metadata)
+# CERN
         # NOTE(cyeoh): Although an extension can set
         # return_reservation_id in order to request that a reservation
         # id be returned to the client instead of the newly created
