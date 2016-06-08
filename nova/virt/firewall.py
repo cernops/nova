@@ -236,7 +236,7 @@ class IptablesFirewallDriver(FirewallDriver):
                                 for ip in subnet['ips']]
             self.iptables.ipv4['filter'].remove_rule('FORWARD', '-s %s -d 0.0.0.0/0 -j ACCEPT' % (ips_v4[0],))
         except Exception as e:
-            LOG.warn(_("Cannot remove firewall rule. %s" % str(e)))
+            LOG.warn("Cannot remove firewall rule. %s" % str(e))
         self.instance_info.pop(instance['id'], None)
 # CERN
 
