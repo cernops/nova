@@ -81,6 +81,9 @@ from nova import servicegroup
 from nova import utils
 from nova.virt import hardware
 from nova import volume
+# CERN
+from nova import cern
+# CERN
 
 LOG = logging.getLogger(__name__)
 
@@ -3325,7 +3328,118 @@ class API(base.Base):
                           task_state=None)
     def delete_instance_metadata(self, context, instance, key):
         """Delete the given metadata item from an instance."""
+#  CERN
+        _metadata = dict(instance.metadata)
+
+        landb_update = False
+        landb_os = 'UNKNOWN'
+        landb_osversion = 'UNKNOWN'
+        landb_description = None
+        landb_responsible = None
+        landb_mainuser = None
+
+
+        if key == 'landb-alias':
+            client = cern.LanDB()
+            client.alias_update(instance['hostname'], [])
+
+        if key == 'landb-ipv6ready':
+            client = cern.LanDB()
+            client.ipv6ready_update(instance['hostname'], False)
+
+        if key == 'landb-internet-connectivity':
+            client = cern.LanDB()
+            client.internet_update(instance['hostname'], True)
+
+        if key == 'landb-os':
+            landb_update = True
+            image_ref = instance['image_ref']
+            image_metadata = compute_utils.get_image_metadata(
+                context, self.image_api, image_ref, instance)
+
+            if 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+                landb_os = image_metadata['properties']['os']
+
+            if 'landb-osversion' in _metadata.keys():
+                landb_osversion = _metadata['landb-osversion']
+
+        if key == 'landb-osversion':
+            landb_update = True
+            image_ref = instance['image_ref']
+            image_metadata = compute_utils.get_image_metadata(
+                context, self.image_api, image_ref, instance)
+
+            if 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+                landb_osversion = image_metadata['properties']['os_version']
+
+            if 'landb-os' in _metadata.keys():
+                landb_os = _metadata['landb-os']
+
+        if key == 'landb-mainuser':
+            landb_update = True
+
+            client_xldap = cern.Xldap()
+            client_key = cern.Keystone(context)
+            project_mainuser = client_key.get_project_mainuser(instance['project_id'])
+            if project_mainuser:
+                user_id = client_xldap.user_exists(project_mainuser)
+                egroup_id = client_xldap.egroup_exists(project_mainuser)
+                if user_id:
+                    landb_mainuser = {'PersonID':user_id}
+                elif egroup_id:
+                    landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
+            else:
+                user_id = client_xldap.user_exists(instance['user_id'])
+                if user_id:
+                    landb_mainuser = {'PersonID':user_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
+
+        if key == 'landb-responsible':
+            landb_update = True
+
+            client_xldap = cern.Xldap()
+            client_key = cern.Keystone(context)
+            project_responsible = client_key.get_project_responsible(instance['project_id'])
+            if project_responsible:
+                user_id = client_xldap.user_exists(project_responsible)
+                egroup_id = client_xldap.egroup_exists(project_responsible)
+                if user_id:
+                    landb_responsible = {'PersonID':user_id}
+                elif egroup_id:
+                    landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
+            else:
+                user_id = client_xldap.user_exists(instance['user_id'])
+                if user_id:
+                    landb_responsible = {'PersonID':user_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user. %s" % str(e)))
+                    raise exception.CernInvalidUserEgroup()
+
+        if key == 'landb-description':
+            landb_update = True
+            landb_description = ''
+
+        if landb_update == True:
+            client = cern.LanDB()
+            landb_operating_system = {'Name': landb_os,
+                                     'Version': landb_osversion}
+            client.vm_update(instance['hostname'],
+                             description=landb_description,
+                             operating_system=landb_operating_system,
+                             responsible_person=landb_responsible,
+                             user_person=landb_mainuser)
         instance.delete_metadata_key(key)
+# CERN
         self.compute_rpcapi.change_instance_metadata(context,
                                                      instance=instance,
                                                      diff={key: ['-']})
@@ -3351,6 +3465,97 @@ class API(base.Base):
             _metadata.update(metadata)
 
         self._check_metadata_properties_quota(context, _metadata)
+# CERN
+        landb_update = False
+        landb_os = 'UNKNOWN'
+        landb_osversion = 'UNKNOWN'
+        landb_description = None
+        landb_responsible = None
+        landb_mainuser = None
+
+        client = cern.LanDB()
+        image_ref = instance['image_ref']
+        image_metadata = compute_utils.get_image_metadata(
+            context, self.image_api, image_ref, instance)
+
+        if 'landb-alias' in metadata.keys():
+            new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
+            client.alias_update(instance['hostname'], new_alias)
+
+        if 'landb-ipv6ready' in metadata.keys():
+            if metadata['landb-ipv6ready'].lower() == 'true':
+                client.ipv6ready_update(instance['hostname'], True)
+            else:
+                client.ipv6ready_update(instance['hostname'], False)
+
+        if 'landb-internet-connectivity' in metadata.keys():
+            if metadata['landb-internet-connectivity'].lower() == 'true':
+                client.internet_update(instance['hostname'], True)
+            else:
+                client.internet_update(instance['hostname'], False)
+
+        if 'landb-os' in metadata.keys():
+            landb_update = True
+            landb_os = metadata['landb-os']
+        elif 'landb-os' in _metadata.keys():
+            landb_os = _metadata['landb-os']
+        elif 'properties' in image_metadata.keys()\
+                and 'os' in image_metadata['properties'].keys():
+            landb_os = image_metadata['properties']['os']
+
+        if 'landb-osversion' in metadata.keys():
+            landb_update = True
+            landb_osversion = metadata['landb-osversion']
+        elif 'landb-osversion' in _metadata.keys():
+            landb_osversion = _metadata['landb-osversion']
+        elif 'properties' in image_metadata.keys()\
+                and 'os_version' in image_metadata['properties'].keys():
+            os_version = image_metadata['properties']['os_version']
+
+        if 'landb-mainuser' in metadata.keys():
+            landb_update = True
+
+            client = cern.Xldap()
+            user_id = client.user_exists(metadata['landb-mainuser'])
+            egroup_id = client.egroup_exists(metadata['landb-mainuser'])
+
+            if user_id:
+                landb_mainuser = {'PersonID':user_id}
+            elif egroup_id:
+                landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for main user"))
+                raise exception.CernInvalidUserEgroup()
+
+        if 'landb-responsible' in metadata.keys():
+            landb_update = True
+
+            client = cern.Xldap()
+            user_id = client.user_exists(metadata['landb-responsible'])
+            egroup_id = client.egroup_exists(metadata['landb-responsible'])
+
+            if user_id:
+                landb_responsible = {'PersonID':user_id}
+            elif egroup_id:
+                landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+            else:
+                LOG.error(_("Cannot find user/egroup for responsible user"))
+                raise exception.CernInvalidUserEgroup()
+
+        if 'landb-description' in metadata.keys():
+            landb_update = True
+            landb_description = metadata['landb-description']
+
+        if landb_update == True:
+            client = cern.LanDB()
+            landb_operating_system = {'Name': landb_os,
+                                      'Version': landb_osversion}
+            client.vm_update(instance['hostname'],
+                             description=landb_description,
+                             operating_system=landb_operating_system,
+                             responsible_person=landb_responsible,
+                             user_person=landb_mainuser)
+# CERN
         instance.metadata = _metadata
         instance.save()
         diff = _diff_dict(orig, instance.metadata)

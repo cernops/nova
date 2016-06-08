@@ -2498,6 +2498,7 @@ class CernManager(NetworkManager):
 
         client_landb = cern.LanDB()
         client_xldap = cern.Xldap()
+        client_key = cern.Keystone(admin_context)
 
         if client_landb.device_exists(vm_name):
             LOG.error(_("Hostname already exists in landb: %s" % vm_name))
@@ -2549,36 +2550,90 @@ class CernManager(NetworkManager):
 
         user_name = self.db.instance_get_by_uuid(admin_context,
                                                  instance_uuid)["user_id"]
+        instance_project = self.db.instance_get_by_uuid(admin_context,
+                                                 instance_uuid)["project_id"]
         person_id = client_xldap.user_exists(user_name)
-        if not person_id:
-            LOG.error(_("Cannot verify if USER exists: %s" % user_name))
-            raise exception.CernInvalidUser()
-        landb_responsible = {'PersonID':person_id}
-        landb_mainuser = {'PersonID':person_id}
+        if person_id:
+            landb_responsible = {'PersonID':person_id}
+            landb_mainuser = {'PersonID':person_id}
+        else:
+            project_mainuser = client_key.get_project_mainuser(instance_project)
+            project_responsible = client_key.get_project_responsible(instance_project)
+            if project_mainuser:
+                user_id = client_xldap.user_exists(project_mainuser)
+                egroup_id = client_xldap.egroup_exists(project_mainuser)
+                if user_id:
+                    landb_mainuser = {'PersonID': user_id}
+                elif egroup_id:
+                    landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user"))
+                    raise exception.CernInvalidUserEgroup()
+            else:
+                LOG.error(_("Cannot find user/egroup for main user"))
+                raise exception.CernInvalidUserEgroup()
+
+            if project_responsible:
+                user_id = client_xldap.user_exists(project_responsible)
+                egroup_id = client_xldap.egroup_exists(project_responsible)
+                if user_id:
+                    landb_responsible = {'PersonID': user_id}
+                elif egroup_id:
+                    landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user"))
+                    raise exception.CernInvalidUserEgroup()
+            else:
+                LOG.error(_("Cannot find user/egroup for main user"))
+                raise exception.CernInvalidUserEgroup()
 
         if 'landb-mainuser' in metadata.keys():
             user_id = client_xldap.user_exists(metadata['landb-mainuser'])
             egroup_id = client_xldap.egroup_exists(metadata['landb-mainuser'])
 
             if user_id:
-                landb_mainuser = {'PersonID':user_id}
+                landb_mainuser = {'PersonID': user_id}
             elif egroup_id:
                 landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
             else:
                 LOG.error(_("Cannot find user/egroup for main user"))
                 raise exception.CernInvalidUserEgroup()
+        else:
+            project_mainuser = client_key.get_project_mainuser(instance_project)
+            if project_mainuser:
+                user_id = client_xldap.user_exists(project_mainuser)
+                egroup_id = client_xldap.egroup_exists(project_mainuser)
+                if user_id:
+                    landb_mainuser = {'PersonID': user_id}
+                elif egroup_id:
+                    landb_mainuser = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user"))
+                    raise exception.CernInvalidUserEgroup()
 
         if 'landb-responsible' in metadata.keys():
             user_id = client_xldap.user_exists(metadata['landb-responsible'])
             egroup_id = client_xldap.egroup_exists(metadata['landb-responsible'])
 
             if user_id:
-                landb_responsible = {'PersonID':user_id}
+                landb_responsible = {'PersonID': user_id}
             elif egroup_id:
                 landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
             else:
                 LOG.error(_("Cannot find user/egroup for responsible user"))
                 raise exception.CernInvalidUserEgroup()
+        else:
+            project_responsible = client_key.get_project_responsible(instance_project)
+            if project_responsible:
+                user_id = client_xldap.user_exists(project_responsible)
+                egroup_id = client_xldap.egroup_exists(project_responsible)
+                if user_id:
+                    landb_responsible = {'PersonID': user_id}
+                elif egroup_id:
+                    landb_responsible = {'FirstName':'E-GROUP', 'Name':egroup_id}
+                else:
+                    LOG.error(_("Cannot find user/egroup for main user"))
+                    raise exception.CernInvalidUserEgroup()
 
         landb_description = ""
         if 'landb-description' in metadata.keys():
@@ -2596,6 +2651,12 @@ class CernManager(NetworkManager):
                 client_landb.ipv6ready_update(vm_name, True)
             else:
                 client_landb.ipv6ready_update(vm_name, False)
+
+        if 'landb-internet-connectivity' in metadata.keys():
+            if metadata['landb-internet-connectivity'].lower() == 'true':
+                client_landb.internet_update(instance['hostname'], True)
+            else:
+                client_landb.internet_update(instance['hostname'], False)
 
         if 'landb-alias' in metadata.keys():
             new_alias = [x.strip() for x in metadata['landb-alias'].split(',')]
