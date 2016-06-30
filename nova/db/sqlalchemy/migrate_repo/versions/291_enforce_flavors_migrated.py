@@ -24,8 +24,8 @@ def upgrade(migrate_engine):
     count = select([func.count()]).select_from(sysmeta).where(
         and_(instances.c.uuid == sysmeta.c.instance_uuid,
              sysmeta.c.key == 'instance_type_id',
-             sysmeta.c.deleted != sysmeta.c.id,
-             instances.c.deleted != instances.c.id)).execute().scalar()
+             sysmeta.c.deleted == '0',
+             instances.c.deleted == '0')).execute().scalar()
     if count > 0:
         msg = _('There are still %(count)i unmigrated flavor records. '
                 'Migration cannot continue until all instance flavor '
