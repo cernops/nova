@@ -568,6 +568,10 @@ def downsize_quota_delta(context, instance):
     """
     old_flavor = instance.get_flavor('old')
     new_flavor = instance.get_flavor('new')
+# CERN
+    if old_flavor == None and new_flavor == None:
+        return {}
+# CERN
     return resize_quota_delta(context, new_flavor, old_flavor, 1, -1)
 
 
