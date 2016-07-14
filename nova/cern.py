@@ -309,8 +309,9 @@ class LanDB:
             LOG.error(_("Cannot connect to LanDB"))
             raise exception.CernLanDB()
 
-        for alias in current_alias:
-            self.client.service.interfaceRemoveAlias(device, alias)
+        if current_alias:
+            for alias in current_alias:
+                self.client.service.interfaceRemoveAlias(device, alias)
 
         try:
             for alias in old_alias:
