@@ -538,7 +538,7 @@ class ServersController(wsgi.Controller):
             msg = "Hostname already in DNS. Wait for DNS refresh"
             raise exc.HTTPBadRequest(explanation=msg)
 
-    def _cern_validate_windows_hostname(self, context, image_uuid):
+    def _cern_validate_windows_hostname(self, context, image_uuid, name):
         if image_uuid != '':
             image_service = nova.image.glance.get_default_image_service()
             image_metadata = image_service.show(context, image_uuid)
@@ -667,7 +667,7 @@ class ServersController(wsgi.Controller):
         image_uuid = self._image_from_req_data(server_dict, create_kwargs)
 # CERN
         self._cern_validate_landb_hostname(name)
-        self._cern_validate_windows_hostname(context, image_uuid)
+        self._cern_validate_windows_hostname(context, image_uuid, name)
         metadata = server_dict.get('metadata', {})
         self._cern_validate_metadata(metadata)
 # CERN
