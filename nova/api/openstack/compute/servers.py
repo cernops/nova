@@ -1077,6 +1077,12 @@ class ServersController(wsgi.Controller):
 
         rebuild_kwargs = {}
 
+# CERN
+        if 'name' in rebuild_dict:
+            msg = _("Hostname cannot be updated.")
+            raise exc.HTTPBadRequest(explanation=msg)
+# CERN
+
         if list(self.rebuild_extension_manager):
             self.rebuild_extension_manager.map(self._rebuild_extension_point,
                                                rebuild_dict, rebuild_kwargs)
