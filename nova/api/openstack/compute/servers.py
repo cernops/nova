@@ -1069,6 +1069,12 @@ class ServersController(wsgi.Controller):
 
         helpers.translate_attributes(helpers.REBUILD, rebuild_dict, kwargs)
 
+# CERN
+        if 'name' in rebuild_dict:
+            msg = _("Hostname cannot be updated.")
+            raise exc.HTTPBadRequest(explanation=msg)
+# CERN
+
         for request_attribute, instance_attribute in attr_map.items():
             try:
                 if request_attribute == 'name':
