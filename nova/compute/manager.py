@@ -2071,6 +2071,8 @@ class ComputeManager(manager.Manager):
                     reason=msg)
 # CERN
         network_info.wait(do_raise=True)
+        instance.info_cache.network_info = network_info
+        instance.save()
         self._cern_ready(context, instance)
 # CERN
         try:
