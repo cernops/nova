@@ -23,6 +23,9 @@ import oslo_messaging as messaging
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
+# CERN
+from oslo_utils import versionutils
+# CERN
 import six
 
 from nova.api.ec2 import ec2utils
@@ -471,10 +474,23 @@ class ConductorManager(manager.Manager):
         # NOTE(danms): The RPC layer will convert to primitives for us,
         # but in this case, we need to honor the version the client is
         # asking for, so we do it before returning here.
-        return (result.obj_to_primitive(
-            target_version=object_versions[objname],
-            version_manifest=object_versions)
-                if isinstance(result, nova_object.NovaObject) else result)
+# CERN
+        # NOTE(hanlind): Do not convert older than requested objects,
+        # see bug #1596119.
+        if isinstance(result, nova_object.NovaObject):
+            target_version = object_versions[objname]
+            requested_version = versionutils.convert_version_to_tuple(
+                target_version)
+            actual_version = versionutils.convert_version_to_tuple(
+                result.VERSION)
+            do_backport = requested_version < actual_version
+            other_major_version = requested_version[0] != actual_version[0]
+            if do_backport or other_major_version:
+                result = result.obj_to_primitive(
+                    target_version=target_version,
+                    version_manifest=object_versions)
+        return result
+# CERN
 
     def object_action(self, context, objinst, objmethod, args, kwargs):
         """Perform an action on an object."""
