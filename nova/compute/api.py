@@ -3764,7 +3764,7 @@ class API(base.Base):
             landb_osversion = _metadata['landb-osversion']
         elif 'properties' in image_metadata.keys()\
                 and 'os_version' in image_metadata['properties'].keys():
-            os_version = image_metadata['properties']['os_version']
+            landb_osversion = image_metadata['properties']['os_version']
 
         if 'landb-mainuser' in metadata.keys():
             landb_update = True
