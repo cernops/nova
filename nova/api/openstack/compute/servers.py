@@ -543,6 +543,10 @@ class ServersController(wsgi.Controller):
             msg = "Instance name is not a valid hostname"
             raise exc.HTTPBadRequest(explanation=msg)
 
+        if '_' in name:
+            msg = "Instance name is not a valid hostname"
+            raise exc.HTTPBadRequest(explanation=msg)
+
         if client_landb.device_exists(name):
             msg = "Hostname already in use"
             raise exc.HTTPBadRequest(explanation=msg)
