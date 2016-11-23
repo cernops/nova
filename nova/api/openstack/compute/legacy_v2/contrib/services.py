@@ -102,12 +102,12 @@ class ServiceController(object):
         # NOTE(alex_xu): back-compatible with db layer hard-code admin
         # permission checks
         nova_context.require_admin_context(context)
-
-        try:
-            utils.validate_integer(id, 'id')
-        except exception.InvalidInput as exc:
-            raise webob.exc.HTTPBadRequest(explanation=exc.format_message())
-
+# CERN
+#        try:
+#            utils.validate_integer(id, 'id')
+#        except exception.InvalidInput as exc:
+#            raise webob.exc.HTTPBadRequest(explanation=exc.format_message())
+# CERN
         try:
             self.host_api.service_delete(context, id)
         except exception.ServiceNotFound:

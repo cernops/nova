@@ -164,12 +164,12 @@ class ServiceController(wsgi.Controller):
         """Deletes the specified service."""
         context = req.environ['nova.context']
         authorize(context)
-
-        try:
-            utils.validate_integer(id, 'id')
-        except exception.InvalidInput as exc:
-            raise webob.exc.HTTPBadRequest(explanation=exc.format_message())
-
+# CERN
+#        try:
+#            utils.validate_integer(id, 'id')
+#        except exception.InvalidInput as exc:
+#            raise webob.exc.HTTPBadRequest(explanation=exc.format_message())
+# CERN
         try:
             self.host_api.service_delete(context, id)
         except exception.ServiceNotFound:
