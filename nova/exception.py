@@ -2158,3 +2158,64 @@ class Unauthorized(NovaException):
 
 class NeutronAdminCredentialConfigurationInvalid(Invalid):
     msg_fmt = _("Networking client is experiencing an unauthorized exception.")
+
+# CERN
+class CernProjectTargetCell(NovaException):
+    msg_fmt = _("Failed to select available cell.")
+
+
+class CernDNS(NovaException):
+    msg_fmt = _("Failed to update DNS.")
+
+
+class CernNetwork(NovaException):
+    msg_fmt = _("Network inconsistency.")
+
+
+class CernHostnameWrong(NovaException):
+    msg_fmt = _("Invalid hostname.")
+
+
+class CernInvalidHostname(Invalid):
+    msg_fmt = _("Device already exists or is not a valid hostname.")
+    code = 404
+
+
+class CernInvalidUser(Invalid):
+    msg_fmt = _("Invalid user.")
+    code = 404
+
+
+class CernInvalidEgroup(Invalid):
+    msg_fmt = _("Invalid egroup.")
+    code = 404
+
+
+class CernInvalidUserEgroup(Invalid):
+    msg_fmt = _("Invalid user or egroup.")
+    code = 404
+
+
+class CernInvalidDevice(Invalid):
+    msg_fmt = _("Invalid device.")
+    code = 404
+
+
+class CernDeviceNotFound(NovaException):
+    msg_fmt = _("Device not found.")
+
+
+class CernLanDB(NovaException):
+    msg_fmt = _("Unable to connect to LanDB")
+
+
+class CernLanDBAuthentication(NovaException):
+    msg_fmt = _("Unable to authenticate to LanDB")
+
+
+class CernLanDBUpdate(NovaException):
+    msg_fmt = _("Unable to update LanDB")
+
+
+class CernActiveDirectory(NovaException):
+    msg_fmt = _("Network Error")
