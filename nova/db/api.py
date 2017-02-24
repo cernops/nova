@@ -2016,3 +2016,42 @@ def instance_tag_delete_all(context, instance_uuid):
 def instance_tag_exists(context, instance_uuid, tag):
     """Check if specified tag exist on the instance."""
     return IMPL.instance_tag_exists(context, instance_uuid, tag)
+
+# CERN
+def cern_fixed_host_bulk_create(context, hosts):
+    """Create a lot of fixed hosts from the values dictionary."""
+    return IMPL.cern_fixed_host_bulk_create(context, hosts)
+
+
+def cern_netcluster_get(context, host):
+    """Get the host ipservice"""
+    return IMPL.cern_netcluster_get(context, host)
+
+
+def cern_mac_ip_get(context, ipservice, host=None):
+    """Get the host ipservice"""
+    return IMPL.cern_mac_ip_get(context, ipservice, host)
+
+
+def cern_ignore_hosts(context, ipservice):
+    return IMPL.cern_ignore_hosts(context, ipservice)
+
+
+def cern_fixed_ip_get_by_address(context, xip):
+    return IMPL.cern_fixed_ip_get_by_address(context, xip)
+
+
+def aggregate_metadata_get_all_by_key(context, key=None):
+    """Get all metadata values in all aggregates given a key."""
+    return IMPL.aggregate_metadata_get_all_by_key(context, key)
+
+
+def netcluster_get_by_host(context, host):
+    """Get host netcluster """
+    return IMPL.netcluster_get_by_host(context, host)
+
+
+def netcluster_count_free_ips(context, netcluster):
+    """Get free IPs per netcluster"""
+    return IMPL.netcluster_count_free_ips(context, netcluster)
+# CERN
