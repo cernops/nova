@@ -909,7 +909,7 @@ class FixedIp(BASE, NovaBase, models.SoftDeleteMixin):
 # CERN
 
 # CERN
-class CernNetwork(BASE, NovaBase):
+class CernNetwork(BASE, NovaBase, models.SoftDeleteMixin):
     """Represents an Ip Service configuration at CERN."""
     __tablename__ = 'cern_network'
     id = Column(Integer, primary_key=True)

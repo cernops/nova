@@ -6952,3 +6952,102 @@ def console_auth_token_destroy_expired_by_host(context, host):
         filter_by(host=host).\
         filter(models.ConsoleAuthToken.expires <= timeutils.utcnow_ts()).\
         delete()
+
+# CERN
+@require_context
+@main_context_manager.writer
+def cern_fixed_host_bulk_create(context, hosts):
+    for host in hosts:
+        model = models.CernNetwork()
+        model.update(host)
+        model.save(context.session)
+
+
+@require_context
+@main_context_manager.reader
+def cern_netcluster_get(context, xhost):
+    return model_query(context, models.CernNetwork, read_deleted="no").\
+                   filter_by(host=xhost).\
+                   first()
+
+
+@require_context
+@main_context_manager.reader
+def cern_mac_ip_get(context, xipservice, host):
+    fixed_ips = model_query(context, models.FixedIp).\
+                        filter_by(reserved=False).\
+                        filter_by(deleted=False).\
+                        filter_by(allocated=False).\
+                        filter_by(netcluster=xipservice).\
+                        all()
+    if not fixed_ips:
+        raise exception.NoMoreFixedIps()
+
+    return fixed_ips
+
+
+@require_context
+@main_context_manager.reader
+def cern_ignore_hosts(context, xipservice):
+    rows = model_query(context, models.CernNetwork).\
+           filter(models.CernNetwork.netcluster != xipservice).\
+           all()
+
+    hosts = []
+    for r in rows:
+        hosts.append(r['host'].lower())
+
+    return hosts
+
+
+@require_context
+@main_context_manager.reader
+def cern_fixed_ip_get_by_address(context, xip):
+    ips = model_query(models.FixedIp).\
+           filter(models.FixedIp.address == xip).\
+           first()
+
+    if not ips:
+        return None
+
+    return ips
+
+
+@require_context
+@main_context_manager.reader
+def aggregate_metadata_get_all_by_key(context, key=None):
+    query = model_query(context, models.Aggregate).join(
+            "_metadata")
+    if key:
+        query = query.filter(models.AggregateMetadata.key == key)
+    rows = query.all()
+
+    metadata = collections.defaultdict(set)
+    for aggr in rows:
+        for kv in aggr._metadata:
+            if not key or kv['key'] == key:
+                metadata[kv['key']].add(kv['value'])
+    return metadata
+
+
+@require_context
+@main_context_manager.reader
+def netcluster_get_by_host(context, host):
+    result = model_query(context, models.CernNetwork.netcluster,
+                 read_deleted="no", base_model=models.CernNetwork).\
+                 filter_by(host=host).\
+                 first()
+    if not result:
+        raise exception.HostNotFound(host=host)
+
+    return result[0]
+
+
+@require_context
+@main_context_manager.reader
+def netcluster_count_free_ips(context, netcluster):
+    return model_query(context, models.FixedIp, read_deleted="no").\
+               filter_by(netcluster=netcluster).\
+               filter_by(allocated=0).\
+               count()
+# CERN
