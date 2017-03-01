@@ -188,7 +188,12 @@ class LiveMigrationTask(base.TaskBase):
             # if we want to make sure that the next destination
             # is not forced to be the original host
             request_spec.reset_forced_destinations()
-
+# CERN
+        ctxt = context.get_admin_context()
+        ipservice = db.cern_netcluster_get(ctxt, self.instance['host'])
+        ignore_hosts = db.cern_ignore_hosts(ctxt, ipservice['netcluster'])
+        attempted_hosts.extend(ignore_hosts)
+# CERN
         host = None
         while host is None:
             self._check_not_over_max_retries(attempted_hosts)
