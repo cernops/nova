@@ -82,6 +82,15 @@ class Keystone:
             responsible = project.__dict__['landb-responsible']
         return responsible
 
+    def get_cells_mapping(self, project_id):
+        cells_mapping = []
+        project = self._get_project(project_id)
+        if project and 'cells-mapping' in project.__dict__.keys():
+            temp = project.__dict__['cells-mapping']
+            for x in temp.split(','):
+                cells_mapping.append(x.strip())
+        return cells_mapping
+
 
 class LanDB:
     def __init__(self, username=None, password=None, client=None):
