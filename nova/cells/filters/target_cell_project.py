@@ -17,8 +17,10 @@
 Project target cell filter.
 """
 
+from nova import cern
 from oslo_config import cfg
 from nova.cells import filters
+from oslo_log import log as logging
 
 cell_project_target_cell_opts = [
         cfg.ListOpt('cells_default',
@@ -32,6 +34,9 @@ cell_project_target_cell_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(cell_project_target_cell_opts, group='cells')
+
+LOG = logging.getLogger(__name__)
+
 
 class TargetCellProjectFilter(filters.BaseCellFilter):
     """Target Cell Project Filter"""
@@ -64,6 +69,11 @@ class TargetCellProjectFilter(filters.BaseCellFilter):
 
         if project_cells != []:
             return [x for x in cells if x.name in project_cells]
+        else:
+            ctxt = filter_properties['context']
+            client_key = cern.Keystone(ctxt)
+            cells_mapping = client_key.get_cells_mapping(instance_project_id)
+            if cells_mapping != []:
+                return [x for x in cells if x.name in cells_mapping]
 
         return generic_cells
-
