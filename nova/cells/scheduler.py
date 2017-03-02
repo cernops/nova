@@ -63,6 +63,9 @@ class CellsScheduler(base.Base):
     def _create_instances_here(self, ctxt, instance_uuids, instance_properties,
             instance_type, image, security_groups, block_device_mapping):
 # CERN
+        security_groups = (
+            self.compute_api.security_group_api.populate_security_groups(
+                security_groups))
         instances = []
         for i, instance_uuid in enumerate(instance_uuids):
             instance_val = copy.copy(instance_properties[i])
@@ -86,6 +89,7 @@ class CellsScheduler(base.Base):
             # before it was part of the Instance, skip it now until cells RPC
             # is sending proper instance objects.
             instance_values.pop('pci_requests', None)
+            instance_values.pop('ec2_ids', None)
 
             instance = objects.Instance(context=ctxt)
             instance.update(instance_values)
