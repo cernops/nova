@@ -1235,9 +1235,14 @@ class LibvirtDriver(driver.ComputeDriver):
         pre_grizzly_name = libvirt_utils.get_instance_path(instance,
                                                            forceold=True)
         target = pre_grizzly_name + '_resize'
+# CERN
+        inst_base = pre_grizzly_name
+# CERN
         if not os.path.exists(target):
             target = libvirt_utils.get_instance_path(instance) + '_resize'
-
+# CERN
+            inst_base = libvirt_utils.get_instance_path(instance)
+# CERN
         if os.path.exists(target):
             # Deletion can fail over NFS, so retry the deletion as required.
             # Set maximum attempt as 5, most test can remove the directory
@@ -1256,7 +1261,17 @@ class LibvirtDriver(driver.ComputeDriver):
         if backend.check_image_exists():
             backend.remove_snap(libvirt_utils.RESIZE_SNAPSHOT_NAME,
                                 ignore_errors=True)
-
+# CERN
+        # NOTE(mjozefcz):
+        # self.image_backend.image for some backends recreates instance
+        # directory and image disk.info - remove it here if exists
+        if os.path.exists(inst_base) and not backend.check_image_exists():
+            try:
+                shutil.rmtree(inst_base)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+# CERN
         if instance.host != CONF.host:
             self._undefine_domain(instance)
             self.unplug_vifs(instance, network_info)
