@@ -7126,6 +7126,11 @@ class LibvirtDriver(driver.ComputeDriver):
                              'Error: %(error)s'),
                          {'i_name': guest.name,
                           'error': e})
+# CERN
+            except:
+                LOG.error("Periodic task is updating the host stats, "
+                          "but can't get the disk of instance: %s" % guest.uuid)
+# CERN
             # NOTE(gtt116): give other tasks a chance.
             greenthread.sleep(0)
         return disk_over_committed_size
