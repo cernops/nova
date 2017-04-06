@@ -111,7 +111,6 @@ class CellsScheduler(base.Base):
                     instance,
                     security_groups,
                     block_device_mapping,
-                    num_instances, i)
                     1, i)
             block_device_mapping = (
                 self.compute_api._bdm_validate_set_size_and_instance(
