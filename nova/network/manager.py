@@ -2226,18 +2226,15 @@ class CernManager(NetworkManager):
         #             we major version the network_rpcapi to 2.0.
         return []
 
-    @network_api.wrap_check_policy
     def allocate_floating_ip(self, context, project_id, pool):
         """Gets a floating ip from the pool."""
         return None
 
-    @network_api.wrap_check_policy
     def deallocate_floating_ip(self, context, address,
                                affect_auto_assigned):
         """Returns a floating ip to the pool."""
         return None
 
-    @network_api.wrap_check_policy
     def associate_floating_ip(self, context, floating_address, fixed_address,
                               affect_auto_assigned=False):
         """Associates a floating ip with a fixed ip.
@@ -2247,7 +2244,6 @@ class CernManager(NetworkManager):
         """
         return None
 
-    @network_api.wrap_check_policy
     def disassociate_floating_ip(self, context, address,
                                  affect_auto_assigned=False):
         """Disassociates a floating ip from its fixed ip.
