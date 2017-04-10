@@ -6999,7 +6999,7 @@ def cern_ignore_hosts(context, xipservice):
 @require_context
 @main_context_manager.reader
 def cern_fixed_ip_get_by_address(context, xip):
-    ips = model_query(models.FixedIp).\
+    ips = model_query(context, models.FixedIp).\
            filter(models.FixedIp.address == xip).\
            first()
 
