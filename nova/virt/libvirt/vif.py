@@ -433,7 +433,7 @@ class LibvirtGenericVIFDriver(object):
 
         if self.get_firewall_required_os_vif(vif):
             mac_id = vif.address.replace(':', '')
-            name = "nova-instance-" + instance.name + "-" + mac_id
+            name = "nova-instance-" + instance.name + "-" + mac_id.upper()
             conf.filtername = name
 
     def _set_config_VIFOpenVSwitch(self, instance, vif, conf):
