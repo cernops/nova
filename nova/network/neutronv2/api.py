@@ -788,12 +788,14 @@ class API(base_api.NetworkAPI):
                                   'security groups cannot be applied: %s',
                                   network, instance=instance)
                         raise exception.SecurityGroupCannotBeApplied()
-
+# CERN
+                admin_client = get_client(context, admin=True)
+# CERN
                 created_port_id = None
                 if not request.port_id:
                     # create minimal port, if port not already created by user
                     created_port = self._create_port_minimal(
-                            neutron, instance, request.network_id,
+                            admin_client, instance, request.network_id,
                             request.address, security_group_ids)
                     created_port_id = created_port['id']
                     created_port_ids.append(created_port_id)
