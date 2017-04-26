@@ -102,6 +102,7 @@ from nova.virt import virtapi
 from nova.volume import cinder
 from nova.volume import encryptors
 # CERN
+import socket
 import time
 from nova import cern
 # CERN
