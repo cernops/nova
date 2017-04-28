@@ -1428,7 +1428,9 @@ class API(base.Base):
 
         self._populate_instance_names(instance, num_instances)
         instance.shutdown_terminate = shutdown_terminate
-        if num_instances > 1 and self.cell_type != 'api':
+# CERN
+        if num_instances > 1:
+# CERN
             instance = self._apply_instance_name_template(context, instance,
                                                           index)
 
