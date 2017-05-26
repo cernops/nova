@@ -377,9 +377,12 @@ class API(base_api.NetworkAPI):
             IpAddressGenerationFailure error.
         :raises: PortBindingFailed: If port binding failed.
         """
-        port_req_body = {'port': {}}
-        try:
 # CERN
+        zone = 'compute:%s' % instance.availability_zone
+        port_req_body = {'port': {'device_id': instance.uuid,
+                                  'device_owner': zone}}
+        port_req_body['port']['binding:host_id'] = instance.host
+        try:
             if fixed_ip:
                 port_req_body['port']['fixed_ips'] = [
                     {'ip_address': str(fixed_ip)}]
@@ -388,6 +391,10 @@ class API(base_api.NetworkAPI):
                 subnet_id = host_subnets['host']['available_random_subnet']
                 port_req_body['port']['fixed_ips'] = [
                     {'subnet_id': subnet_id}]
+                if host_subnets['host']['available_random_subnet_v6']:
+                    subnet_id_v6 = host_subnets['host']['available_random_subnet_v6']
+                    port_req_body['port']['fixed_ips'] += [
+                        {'subnet_id': subnet_id_v6}]
 # CERN
             port_req_body['port']['network_id'] = network_id
             port_req_body['port']['admin_state_up'] = True
