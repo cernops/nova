@@ -29,6 +29,7 @@ import six
 from nova.compute import utils as compute_utils
 import nova.conf
 from nova import exception
+from nova import utils
 from nova.i18n import _, _LE, _LI, _LW
 from nova.network import base_api
 from nova.network import model as network_model
@@ -382,6 +383,18 @@ class API(base_api.NetworkAPI):
         port_req_body = {'port': {'device_id': instance.uuid,
                                   'device_owner': zone}}
         port_req_body['port']['binding:host_id'] = instance.host
+
+        if not instance.image_ref:
+            dhcp_opts = []
+
+            system_meta = utils.instance_sys_meta(instance)
+            img_meta = utils.get_image_from_system_metadata(system_meta)
+            for opt in ['os','os_version']:
+                if img_meta and opt in img_meta['properties']:
+                    dhcp_opts.append(
+                        {'opt_name': opt, 'opt_value': img_meta['properties'][opt]}
+                    )
+            port_req_body['port']['extra_dhcp_opts'] = dhcp_opts
 
         try:
             if fixed_ip:
