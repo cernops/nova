@@ -579,7 +579,7 @@ class CellsAPI(object):
 
     def live_migrate_instance(self, ctxt, instance, host_name,
                               block_migration, disk_over_commit,
-                              request_spec=None):
+                              request_spec=None, async=False):
         # NOTE(sbauza): Since Cells v1 is quite feature-freeze, we don't want
         # to pass down request_spec to the manager and rather keep the
         # cell conductor providing a new RequestSpec like the original
